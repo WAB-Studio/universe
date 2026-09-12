@@ -69,13 +69,16 @@ export async function writeCachedText(
  * RL-45's backfill: a row `writeCachedText` wrote before this column asked
  * anything, or one whose first ask never fired (no key, over the cap). The
  * definition and example it already carries are left untouched — only
- * `translations` and the flag move, and the flag moves whether or not the
- * model found anything, so this row is never asked twice.
+ * `translations` moves here, and only alongside the flag: a call that comes
+ * back with nothing is not proof the word has no translation, only that
+ * this one attempt found none, so marking it here would close a thin word
+ * for the rest of its life on a single miss.
  */
 export async function markTranslationsAsked(
   headword: string,
   translations: readonly string[] | null,
 ): Promise<void> {
+  if (!translations || translations.length === 0) return;
   await db.execute(sql`
     update reading.word_texts
     set translations = ${sql.param(translations)}, translations_asked = true
