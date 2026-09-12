@@ -3,8 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { GeneratedTextState as TextState } from "@/components/search/generated-text";
+import type { InflectionRule } from "@/lib/dictionary/inflect";
 import { PHRASE_DEBOUNCE_MS } from "@/lib/query/settle";
 import { TEXT_ENDPOINT, textResponseSchema } from "./protocol";
+
+// RL-45's flexion portero: the surface the reader actually typed and the
+// rule that reached `headword` from it. The server re-derives and checks
+// this pair itself (route.ts) — nothing here is trusted on its own, only
+// carried across the one network boundary that can name it, since the
+// server never sees a keystroke.
+export type InflectionClaim = { surface: string; rule: InflectionRule };
 
 const ABSENT: TextState = { kind: "absent" };
 const PENDING: TextState = { kind: "pending" };
@@ -14,12 +22,21 @@ const PENDING: TextState = { kind: "pending" };
 // second visit to the same word in this tab reads straight from here.
 const cache = new Map<string, TextState>();
 
-async function fetchText(headword: string, needDefinition: boolean, signal: AbortSignal): Promise<TextState> {
+async function fetchText(
+  headword: string,
+  needDefinition: boolean,
+  inflection: InflectionClaim | null,
+  signal: AbortSignal,
+): Promise<TextState> {
   try {
     const response = await fetch(TEXT_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ headword, needDefinition }),
+      body: JSON.stringify({
+        headword,
+        needDefinition,
+        ...(inflection ? { surface: inflection.surface, rule: inflection.rule } : {}),
+      }),
       signal,
     });
     if (response.status !== 200) return { kind: "absent" };
@@ -45,7 +62,15 @@ async function fetchText(headword: string, needDefinition: boolean, signal: Abor
 // flight, and one that just resolved — reach `setState`, and both do it
 // from an asynchronous callback (a timer firing, a promise settling), never
 // from the effect's own synchronous body.
-export function useDecoration(headword: string | null, needDefinition: boolean): TextState {
+// `inflection` is absent for every caller in this slice: search-screen.tsx
+// only ever passes the exact match's own headword, whose surface and rule
+// disagree with nothing. A screen that later decorates an inflected-only
+// hit passes the pair it already reads off `WordAnswer.viaInflection`.
+export function useDecoration(
+  headword: string | null,
+  needDefinition: boolean,
+  inflection: InflectionClaim | null = null,
+): TextState {
   const [pendingHeadword, setPendingHeadword] = useState<string | null>(null);
   const [resolved, setResolved] = useState<{ headword: string; text: TextState } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,7 +97,7 @@ export function useDecoration(headword: string | null, needDefinition: boolean):
       // before the settle.
       setPendingHeadword(headword);
 
-      void fetchText(headword, needDefinition, controller.signal).then((text) => {
+      void fetchText(headword, needDefinition, inflection, controller.signal).then((text) => {
         if (controller.signal.aborted) return;
         cache.set(headword, text);
         setResolved({ headword, text });
@@ -87,7 +112,7 @@ export function useDecoration(headword: string | null, needDefinition: boolean):
       abortRef.current?.abort();
       abortRef.current = null;
     };
-  }, [headword, needDefinition]);
+  }, [headword, needDefinition, inflection]);
 
   if (headword === null) return ABSENT;
   const cached = cache.get(headword);
