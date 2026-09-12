@@ -1191,3 +1191,43 @@ them a case `RL-43`'s table would also get wrong:
     the app throws away, and how often the dead end fires cannot be counted from the record.
   - **No new screen, and no board.** `/registro` draws a recorded lookup; this adds rows to it, not a
     view. The user was offered a «what I could not answer» screen and did not take it.
+
+### A model prunes the padded lists, lazily, and demotes rather than deletes. Decided by the user 2026-09-12
+
+**This does not overturn «Pruning the dictionary was measured and refused» above. It is a different
+mechanism.** What was refused there was mechanical trimming at asset-build time — cut every group to
+five, drop a gloss that echoes the headword, drop a gloss of three words or more — and a corpus-wide
+reorder. All of those stay refused, for the reasons measured that day. What is decided here is
+**asking the model already in use to judge each gloss**, which no measurement had tried.
+
+**Why a mechanical rule cannot do this, measured 2026-09-12.** The asset's own statistics cannot tell
+a bad gloss from a rare good one, because the bad ones are common Spanish words used in another
+sense and the good rare ones are genuinely rare:
+
+- Marking glosses that appear once in the whole asset would delete **`abolir`** (`abolish`) and
+  **`rapé`** (`snuff`), both correct.
+- Ordering by frequency within the asset **promotes `polla` from seventh place to third** in `hoot`,
+  because `pera` and `polla` are common words elsewhere. It leaves the screen worse than it found it.
+
+**What the model does, measured over 7 real `gpt-5-nano` calls.** It drops `bacilongo`, `bacilón`,
+`pera`, `polla` («vulgar slang; not appropriate») and `vacilón` from `hoot`; it drops `clamp` listed
+as a translation of `clamp`; it catches the asset's own typos (`a jierro`) and invented terms
+(`asuso`, `suso`) — **and it keeps `abolir`**, the exact gloss the cheap rule would have destroyed.
+
+**It is wrong about one in seven, and the design answers that.** It dropped **`despabilar`** from
+`snuff`, which is correct — to snuff a candle is to trim its wick.
+
+- **The pruned gloss is demoted, never deleted.** It moves to the end of its sense's list, behind
+  what survived. A wrong call costs a place in the order, not a translation.
+- **A floor: never leave a sense with fewer than two glosses drawn.**
+- **The prune runs when a reader first looks at that word, and is cached for everyone after.** Not a
+  build step and not a batch: of the 3,339 lemmas shaped like a dump, a real reader's 43-minute
+  sitting touched a handful. The first reader of a word pays the call; nobody pays it twice.
+
+**The shape this applies to**, measured the same day: a sense with **no definition** carrying **five
+or more glosses** — `hoot`'s noun group exactly. **3,339 of 58,944 lemmas (5.7 %)**, agreeing with
+the 5.9 % of groups over five measured above. **All 3,339 are `thin=false`, so `RL-45` reaches none
+of them**: this is why the case needs its own answer and not a wider `RL-45`.
+
+**Board: none drawn yet.** This changes what a reader sees — the order of a sense's glosses — so it
+needs one before any worker writes it. It is not built.
