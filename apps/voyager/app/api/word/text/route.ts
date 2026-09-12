@@ -86,12 +86,12 @@ export async function POST(request: Request): Promise<Response> {
   if (cached) {
     let translations = cached.translations;
     // A thin word never asked, or asked before this column existed:
-    // enrich it in place, at most once per row, whatever the model
-    // returns. The cap guards this ask too, but never at the cost of the
+    // enrich it in place, at most once per row a translation actually
+    // lands. The cap guards this ask too, but never at the cost of the
     // answer already cached — over it, or with the model off, the row's
     // definition and example still return; only the enrichment is
-    // skipped, and it stays open for a later lookup since the flag moves
-    // to `true` only once an ask actually runs.
+    // skipped, and it stays open for a later lookup whether the ask never
+    // ran or ran and came back empty.
     if (thin && !cached.translationsAsked && env.OPENAI_API_KEY && env.WORD_TEXT_DAILY_CALL_CAP) {
       const calls = await claimDailyCall();
       if (calls <= env.WORD_TEXT_DAILY_CALL_CAP) {
