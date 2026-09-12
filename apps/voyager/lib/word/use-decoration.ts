@@ -4,9 +4,17 @@ import { useEffect, useRef, useState } from "react";
 
 import type { PhotoState } from "@/components/search/word-photo";
 import type { GeneratedTextState as TextState } from "@/components/search/generated-text";
+import type { InflectionRule } from "@/lib/dictionary/inflect";
 import { PHRASE_DEBOUNCE_MS } from "@/lib/query/settle";
 import { rememberCredit } from "./credits-store";
 import { PHOTO_ENDPOINT, TEXT_ENDPOINT, photoResponseSchema, textResponseSchema } from "./protocol";
+
+// RL-45's flexion portero: the surface the reader actually typed and the
+// rule that reached `headword` from it. The server re-derives and checks
+// this pair itself (route.ts) — nothing here is trusted on its own, only
+// carried across the one network boundary that can name it, since the
+// server never sees a keystroke.
+export type InflectionClaim = { surface: string; rule: InflectionRule };
 
 type Decoration = { photo: PhotoState; text: TextState };
 
@@ -36,12 +44,21 @@ async function fetchPhoto(headword: string, signal: AbortSignal): Promise<PhotoS
   }
 }
 
-async function fetchText(headword: string, needDefinition: boolean, signal: AbortSignal): Promise<TextState> {
+async function fetchText(
+  headword: string,
+  needDefinition: boolean,
+  inflection: InflectionClaim | null,
+  signal: AbortSignal,
+): Promise<TextState> {
   try {
     const response = await fetch(TEXT_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ headword, needDefinition }),
+      body: JSON.stringify({
+        headword,
+        needDefinition,
+        ...(inflection ? { surface: inflection.surface, rule: inflection.rule } : {}),
+      }),
       signal,
     });
     if (response.status !== 200) return { kind: "absent" };
@@ -68,7 +85,15 @@ async function fetchText(headword: string, needDefinition: boolean, signal: Abor
 // their own two promises, each reaching `setState` the instant it lands —
 // neither is held for the other (RL-35's board, `PalabraTextoAntesDeFoto`:
 // the reserved 76px square, not the text, is what waits).
-export function useDecoration(headword: string | null, needDefinition: boolean): Decoration {
+// `inflection` is absent for every caller in this slice: search-screen.tsx
+// only ever passes the exact match's own headword, whose surface and rule
+// disagree with nothing. A screen that later decorates an inflected-only
+// hit passes the pair it already reads off `WordAnswer.viaInflection`.
+export function useDecoration(
+  headword: string | null,
+  needDefinition: boolean,
+  inflection: InflectionClaim | null = null,
+): Decoration {
   const [pendingHeadword, setPendingHeadword] = useState<string | null>(null);
   const [resolved, setResolved] = useState<{ headword: string; decoration: Decoration } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,7 +154,7 @@ export function useDecoration(headword: string | null, needDefinition: boolean):
         }
       });
 
-      void fetchText(headword, needDefinition, controller.signal).then((text) => {
+      void fetchText(headword, needDefinition, inflection, controller.signal).then((text) => {
         if (controller.signal.aborted) return;
         textResult = text;
         setResolved({ headword, decoration: { photo: photoResult ?? PENDING.photo, text } });
@@ -145,7 +170,7 @@ export function useDecoration(headword: string | null, needDefinition: boolean):
       abortRef.current?.abort();
       abortRef.current = null;
     };
-  }, [headword, needDefinition]);
+  }, [headword, needDefinition, inflection]);
 
   if (headword === null) return ABSENT;
   const cached = cache.get(headword);

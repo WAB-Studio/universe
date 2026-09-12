@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Sense } from "@/lib/dictionary/index-build";
 import { env } from "@/lib/env";
 import { textResponseSchema, type WordText } from "@/lib/word/protocol";
 
@@ -28,33 +29,40 @@ type ChatCompletionsPayload = {
   choices?: Array<{ message?: { content?: string } }>;
 };
 
-// RL-45's ask, folded into the one prompt: `existingTranslations` null means
-// the entry was never thin and none is wanted; an array (even empty) is
-// what the dictionary already lists, asked to be completed rather than
-// repeated.
-function buildTranslationsInstruction(headword: string, existingTranslations: readonly string[] | null): string {
-  if (existingTranslations === null) {
+// RL-45's ask, folded into the one prompt: `existingSenses` null means the
+// entry was never thin and none is wanted; an array (even empty) is every
+// sense the dictionary already carries, asked for a sense none of them
+// cover — never a bare string the model can satisfy with a synonym of one
+// already listed. `snuff`'s own defect: told only the strings "apagar,
+// despabilar, rapé" and asked for what is "missing", the model answered
+// "extinguir" — a new string for the same sense as "apagar". Naming the
+// sense itself, and saying plainly that a synonym still counts as covered,
+// is what a third sense ("aspirar") needs to surface instead.
+function buildTranslationsInstruction(headword: string, existingSenses: readonly Sense[] | null): string {
+  if (existingSenses === null) {
     return `Set "translations" to null: this headword's dictionary entry is not thin.`;
   }
-  if (existingTranslations.length === 0) {
+  if (existingSenses.length === 0) {
     return (
       `Set "translations" to an array of Spanish translations for "${headword}", most common ` +
       `use first. An empty array if you find none.`
     );
   }
+  const senses = existingSenses
+    .map((sense) => {
+      const gloss = sense.definition ? ` — "${sense.definition}"` : "";
+      return `${sense.pos}: ${sense.translations.join(", ")}${gloss}`;
+    })
+    .join("; ");
   return (
-    `The dictionary already lists these Spanish translations for "${headword}": ` +
-    `${existingTranslations.join(", ")}. Set "translations" to an array of the ones it is ` +
-    `missing, most common use first, never repeating one already listed. An empty array if you ` +
-    `find none.`
+    `The dictionary already lists these senses of "${headword}": ${senses}. Set "translations" to ` +
+    `Spanish words for one sense none of the ones above cover, most common use first. A synonym of ` +
+    `a sense already listed still counts as that same sense, even spelled with a different Spanish ` +
+    `word — never offer one. An empty array if you know no other sense.`
   );
 }
 
-function buildSystemPrompt(
-  headword: string,
-  wantDefinition: boolean,
-  existingTranslations: readonly string[] | null,
-): string {
+function buildSystemPrompt(headword: string, wantDefinition: boolean, existingSenses: readonly Sense[] | null): string {
   const definitionInstruction = wantDefinition
     ? `Write "definition" as one concise English sentence defining "${headword}", in a dictionary's own register.`
     : `Set "definition" to null: this headword already has one.`;
@@ -63,7 +71,7 @@ function buildSystemPrompt(
     `exactly as {"definition": string|null, "example": {"en": string, "es": string}, ` +
     `"translations": string[]|null}. "example.en" is one natural English sentence that uses ` +
     `"${headword}". "example.es" is its Spanish translation. ${definitionInstruction} ` +
-    `${buildTranslationsInstruction(headword, existingTranslations)}`
+    `${buildTranslationsInstruction(headword, existingSenses)}`
   );
 }
 
@@ -82,7 +90,7 @@ function buildSystemPrompt(
 export async function generateWordText(
   headword: string,
   wantDefinition: boolean,
-  existingTranslations: readonly string[] | null,
+  existingSenses: readonly Sense[] | null,
 ): Promise<WordText | null> {
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -93,7 +101,7 @@ export async function generateWordText(
     max_completion_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: buildSystemPrompt(headword, wantDefinition, existingTranslations) },
+      { role: "system", content: buildSystemPrompt(headword, wantDefinition, existingSenses) },
       { role: "user", content: `Headword: ${headword}` },
     ],
   };
