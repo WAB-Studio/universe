@@ -116,6 +116,11 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
   lane copied `node_modules` at birth, so the new package has no link and `typecheck` fails there
   while the main checkout and CI are clean. It is not a real red.
 - Run at most three suites at once. Nine GB of RAM holds three dev servers and three Chromiums.
+- Never run two agents that write `reading.word_texts` or spend `reading.model_spend` at once.
+  `HARNESS_LANE` does not scope those tables: they are global, and two honest reports then
+  contradict each other. See `docs/TRAPS.md`, "One database behind every harness lane".
+- Read `npx vercel env ls production --project reading` before believing a slice shipped. The
+  paid routes answer 204 when a key is missing, so a dark feature looks like a working one.
 - Run `harness:census` from the main checkout when the lane is single-app. A lane opened with
   `--app voyager` copies no `apps/orbit/.env.local`, so `npm run harness:census -w apps/orbit` dies on
   a missing env file there. Both checkouts share one database, so the number is the same.
