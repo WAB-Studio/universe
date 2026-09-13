@@ -1865,3 +1865,48 @@ right length still fits. Reopen this with a reason, not a hunch.
 
 **And do not read a clean gate as a clean route.** `source` carries the same exposure: `admitWord`
 checks ASCII shape, so plain lowercase English words pass whatever they spell.
+
+## Production has none of the keys the paid routes need, and they fail silently
+
+Read from Vercel on 2026-09-12, project **`reading`** (not `voyager` — the CLI needs
+`--project reading`). Production carries **seven** environment variables:
+
+```
+NEXT_PUBLIC_SITE_URL  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  NEXT_PUBLIC_SUPABASE_URL
+DATABASE_URL  MIGRATION_DATABASE_URL  TRANSLATE_MYMEMORY_EMAIL  TRANSLATE_MYMEMORY_KEY
+```
+
+**`OPENAI_API_KEY` is not among them.** Neither is `WORD_TEXT_DAILY_CALL_CAP`,
+`WORD_UNLISTED_DAILY_CLIENT_CAP`, `CLIENT_KEY_SALT`, `PHRASE_NOTES_DAILY_CALL_CAP`,
+`PHRASE_NOTES_DAILY_CLIENT_CAP`, `GEMINI_API_KEY` or any `SUPABASE_STORAGE_*`.
+
+**Every paid route is written to answer 204 when a key is missing** — one shape for absence, by
+design (`app/api/word/unlisted/route.ts:95-100`). The screen draws that 204 as «no se pudo responder
+por internet». So the routes do not crash, do not log, and do not appear broken: **they are simply
+off, and the reader sees the app exactly as it was before any of this was built.** RL-41, RL-42,
+RL-44, RL-45, RL-46, generated definitions, generated examples and word photos are all dead in
+production and have been for as long as the keys have been absent.
+
+**They are missing from `apps/voyager/.env.local` too**, which is why a critic driving the built app
+had to start the server with the variables by hand to see a single network answer.
+
+**Check the environment before believing a slice shipped.** Fifteen modules went green, merged, and
+deployed while the feature they built could not run. `npx vercel env ls production --project reading`
+is one command and it is the difference between "shipped" and "shipped and dark".
+
+## One database behind every harness lane: `word_texts` and `model_spend` are not lane-scoped
+
+`HARNESS_LANE` gives a track its own identities, session files and seeded rows. **It does not give it
+its own `reading.word_texts`, `reading.word_answers` or `reading.model_spend`.** Those are global,
+keyed by headword and by calendar day.
+
+Measured 2026-09-12: a validator on lane 4 and a critic on lane 5 ran at the same time against the
+same Supabase project. The critic watched `reading.word_texts` **lose 8 rows** and
+`translations_asked` drop from 12 to 1 while it was measuring, and reported a `snuff` row state that
+the other lane had written seconds earlier. Both agents reported honest numbers; **the numbers
+contradicted each other because the table underneath was shared.**
+
+**Never run two agents that write `word_texts` or spend `model_spend` at the same time.** Reading is
+fine. Writing is not: their footprints become unattributable, and a report that says "I left the
+database as I found it" cannot be checked. Serialise them, or give each one headwords no other lane
+will touch and say so in the dispatch.
