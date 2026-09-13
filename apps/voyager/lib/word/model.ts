@@ -34,12 +34,16 @@ type ChatCompletionsPayload = {
 
 // RL-45's ask, folded into the one prompt: `existingSenses` null means the
 // entry was never thin and none is wanted; an array (even empty) is every
-// sense the dictionary already carries, asked for every sense none of them
-// cover — never a bare string the model can satisfy with a synonym of one
-// already listed, and never asked as a single sense: picking one left the
-// sense a reader actually wanted to the model's choice, surfacing it in 1
-// of 17 real calls, where asking for all of them returned it on the first
-// try, at no extra call.
+// sense the dictionary already carries, asked for every sense none of the
+// Spanish words already listed express — never a bare string the model can
+// satisfy with a synonym of one already listed, and never asked as a
+// single sense: picking one left the sense a reader actually wanted to the
+// model's choice, surfacing it in 1 of 17 real calls, where asking for all
+// of them returned it on the first try, at no extra call. `snuff`'s own
+// noun sense glosses "sniff" in its English definition while translating
+// only "rapé": the model read that gloss as covering the verb's own smell
+// sense too, and missed it 5 of 6 real calls, until told plainly that a
+// gloss is not a Spanish word and does not count as coverage.
 function buildTranslationsInstruction(headword: string, existingSenses: readonly Sense[] | null): string {
   if (existingSenses === null) {
     return `Set "translations" to null: this headword's dictionary entry is not thin.`;
@@ -58,9 +62,12 @@ function buildTranslationsInstruction(headword: string, existingSenses: readonly
     .join("; ");
   return (
     `The dictionary already lists these senses of "${headword}": ${senses}. Set "translations" to ` +
-    `Spanish words for every sense none of the ones above cover, most common sense first, at most ` +
-    `two words per sense. A synonym of a sense already listed still counts as that same sense, even ` +
-    `spelled with a different Spanish word — never offer one. An empty array if you know no other sense.`
+    `Spanish words for every sense none of the Spanish words above express, most common sense first, ` +
+    `at most two words per sense. A sense counts as covered only when one of the Spanish words ` +
+    `above truly means it: a word appearing inside an English gloss does not cover it, and a ` +
+    `different part of speech is always a different sense. A synonym of a sense already listed ` +
+    `still counts as that same sense, even spelled with a different Spanish word — never offer ` +
+    `one. An empty array if you know no other sense.`
   );
 }
 
