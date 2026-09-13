@@ -34,6 +34,15 @@ export async function readCachedText(headword: string): Promise<CachedText | nul
 }
 
 /**
+ * The one place this rule is written: a call closes the ask only when it
+ * actually returned something. Both the insert path and the backfill path
+ * call this instead of each carrying their own copy of the check.
+ */
+export function translationsWereFound(translations: readonly string[] | null): boolean {
+  return translations !== null && translations.length > 0;
+}
+
+/**
  * Written once, on an accepted model answer alone — a failure leaves no row,
  * so the daily cap is what bounds a word that keeps failing, never a bad
  * row on disk. `on conflict do nothing`: two cold readers racing the same
@@ -69,16 +78,13 @@ export async function writeCachedText(
  * RL-45's backfill: a row `writeCachedText` wrote before this column asked
  * anything, or one whose first ask never fired (no key, over the cap). The
  * definition and example it already carries are left untouched — only
- * `translations` moves here, and only alongside the flag: a call that comes
- * back with nothing is not proof the word has no translation, only that
- * this one attempt found none, so marking it here would close a thin word
- * for the rest of its life on a single miss.
+ * `translations` moves here, and only alongside the flag.
  */
 export async function markTranslationsAsked(
   headword: string,
   translations: readonly string[] | null,
 ): Promise<void> {
-  if (!translations || translations.length === 0) return;
+  if (!translationsWereFound(translations)) return;
   await db.execute(sql`
     update reading.word_texts
     set translations = ${sql.param(translations)}, translations_asked = true

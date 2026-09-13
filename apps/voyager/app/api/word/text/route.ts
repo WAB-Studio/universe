@@ -10,7 +10,12 @@ import { env } from "@/lib/env";
 import { generateWordText, MODEL_NAME } from "@/lib/word/model";
 import { textRequestSchema, textResponseSchema } from "@/lib/word/protocol";
 import { claimDailyCall } from "@/lib/word/spend";
-import { markTranslationsAsked, readCachedText, writeCachedText } from "@/lib/word/text-cache";
+import {
+  markTranslationsAsked,
+  readCachedText,
+  translationsWereFound,
+  writeCachedText,
+} from "@/lib/word/text-cache";
 import { inflectionReallyMovedReader, isInflectionDisagreement, isThinAnswer } from "@/lib/word/thin";
 
 // RL-41 and RL-42's decoration: no reader session reaches this route, the
@@ -138,6 +143,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const definition = wantDefinition ? generated.definition : null;
   const translations = thin ? generated.translations : null;
+  // A thin word whose call comes back empty stays open, the same rule
+  // `markTranslationsAsked` applies to the re-enrichment path: `thin`
+  // alone answers "did we ask", never "is the ask closed".
   await writeCachedText(
     headword,
     MODEL_NAME,
@@ -145,7 +153,7 @@ export async function POST(request: Request): Promise<Response> {
     generated.example.en,
     generated.example.es,
     translations,
-    thin,
+    translationsWereFound(translations),
   );
 
   return json(
