@@ -1789,10 +1789,19 @@ caller's input.** Put the equality check between them, or gate the raw string.
 
 ## `linkInvalid` is a 504 the reader is told is a broken link
 
-The `redirected to .../cuenta?error=linkInvalid` intermittent has fired four times —
-`sync.spec.ts:326` and `registro.spec.ts:348` on 2026-09-11, `offline.spec.ts:177` on CI twice on
-2026-09-12. Two footprints survive, both off CI where a passing rerun cannot wipe them:
-**`private/flake-linkinvalid-offline-177/`**, the second under `sample-2-run-34712443635/`.
+The `redirected to .../cuenta?error=linkInvalid` intermittent has fired five times —
+`sync.spec.ts:326` and `registro.spec.ts:348` on 2026-09-11, `offline.spec.ts:177` on CI three
+times on 2026-09-12. Three footprints survive, all off CI where a passing rerun cannot wipe them:
+**`private/flake-linkinvalid-offline-177/`**, the second under `sample-2-run-34712443635/`, and the
+third in **`private/flake-linkinvalid-183/`** (run `34731134348`, PR #183), which carries the
+server log beside the error context.
+
+**The third footprint reproduces the second exactly**: two `magic link verification failed` lines in
+the whole run, one `AuthRetryableFetchError: Gateway Timeout` with `status: 504` and one
+`AuthApiError` with `code: 'otp_expired'`. Same shape, same arithmetic, a month of sessions apart.
+It fired on a pull request that touches none of the auth path — the branch changed `search-screen.tsx`
+— so **a red here is not the branch under review.** Save the artefact, rerun the job, and read the
+log before suspecting the diff.
 
 **An earlier reading of this said the client retried and met a spent token. It does not, and the
 arithmetic says so.** The run's whole server log holds exactly two `magic link verification failed`

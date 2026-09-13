@@ -75,7 +75,7 @@ this gets built, and no schema, table or column is "prepared for" it.
   suffix clause is what answers those**, from the device and with no table at all, because an `-ing`
   can only be a verb and an `-ly` can only come from an adjective. See `DESIGN.md`, "Pruning the
   dictionary was measured and refused".
-- [ ] **RL-47** *(successor of RL-40)* — The form the reader typed leads the answer with its own
+- [x] **RL-47** *(successor of RL-40)* — The form the reader typed leads the answer with its own
   translation and one example sentence, resolved over the network when the dictionary has no row for
   the form itself. The headword it inflects from sits **underneath**, named as such, with its own
   sense groups: `swishing` answers «silbando» and offers `swish` under it. An exact entry the reader
@@ -223,7 +223,7 @@ this gets built, and no schema, table or column is "prepared for" it.
 - [ ] **RL-28** — When a search finds nothing and the word looks like a typo of one the dictionary
   has, the answer offers the words it might have been, and reaching one of them is a tap. The
   suggestion is computed on the device and touches the network on no keystroke.
-- [ ] **RL-44** *(successor of RL-29)* — When a search finds nothing, the word is answered over the
+- [x] **RL-44** *(successor of RL-29)* — When a search finds nothing, the word is answered over the
   network on its own, and the reader asks for nothing. A suggestion RL-28 finds is offered above it
   and never instead of it: `whereat` offers `whereas` and still answers `whereat`. The answer carries the
   word's translation, its definition and one example sentence with its Spanish translation. It says

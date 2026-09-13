@@ -1,19 +1,7 @@
 import { useTranslations } from "next-intl";
 
 import { Box, Flex, Separator, Text, VisuallyHidden } from "@/components/ui";
-
-// The route's own answer (module 5, `/api/word/unlisted`, unmerged): shaped
-// here rather than imported so this file stands alone until the branches
-// join. `lemma` and `rule` ride along for RL-47's own form-first answer,
-// which reuses this same route contract — `NetworkAnswer` itself draws
-// neither.
-export type UnlistedAnswer = {
-  translations: string[];
-  definition: string | null;
-  example: { en: string; es: string };
-  lemma?: string | null;
-  rule?: string | null;
-};
+import type { UnlistedAnswer } from "@/lib/word/unlisted-protocol";
 
 // The four shapes a word's network answer can be in. State in, DOM out:
 // this file makes no request of its own (RL-44, RL-47's visible half).

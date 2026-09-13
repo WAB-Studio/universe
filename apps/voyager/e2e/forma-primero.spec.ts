@@ -185,11 +185,11 @@ test('variant="compact" draws neither branch\'s network block', async ({ page, c
   await expect(page.getByRole("button", { name: /^Escuchar/ })).toHaveCount(0);
 });
 
-// Every request either the box's own typing or a speak-button click could
-// have made stays inside `/_next/static/`, the manifest asset already
-// fetched by `gotoReady`, or nothing at all: `fixtures.ts`'s own escape
-// watchdog throws on a real `/api/word/*` hit, but this spec also counts
-// them directly, since the done criterion names the route by name.
+// `fixtures.ts`'s escape watchdog is what proves no request reached the real
+// server; this spec adds which routes may be asked at all. A form that only
+// resolved through inflection is one of the two cases RL-44 asks the network
+// about, so `/api/word/unlisted` is expected here and every other word route
+// is not.
 test("no real request to /api/word/* is left behind", async ({ page }) => {
   await deleteTranslator(page);
   await gotoReady(page);
@@ -206,5 +206,6 @@ test("no real request to /api/word/* is left behind", async ({ page }) => {
   await page.waitForTimeout(900);
 
   const wordRoute = requestUrls.filter((url) => url.includes("/api/word/"));
-  expect(wordRoute, `unexpected /api/word/* requests: ${JSON.stringify(wordRoute)}`).toEqual([]);
+  const unexpected = wordRoute.filter((url) => !new URL(url).pathname.startsWith("/api/word/unlisted"));
+  expect(unexpected, `unexpected /api/word/* requests: ${JSON.stringify(unexpected)}`).toEqual([]);
 });
