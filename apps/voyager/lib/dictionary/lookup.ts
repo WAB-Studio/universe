@@ -1,6 +1,6 @@
 import { suggestCorrection } from "./edit-distance";
 import { normaliseHeadword } from "./format";
-import { groupFor, type DictionaryIndex, type SenseGroup } from "./index-build";
+import { groupFor, pinnedPosForRule, type DictionaryIndex, type SenseGroup } from "./index-build";
 import { lemmaCandidates, type InflectionRule } from "./inflect";
 import { IRREGULAR_FORMS } from "./irregular-forms";
 
@@ -99,7 +99,9 @@ export function lookupWord(index: DictionaryIndex, query: string): WordAnswer {
   for (const candidate of lemmaCandidates(query)) {
     if (candidate.lemma === normalised) continue;
     if (!isAnswerableHeadword(candidate.lemma)) continue;
-    const group = groupFor(index, candidate.lemma);
+    // RL-47: the suffix that led here fixes a part of speech, so that
+    // category's senses lead the lemma's own group when it carries one.
+    const group = groupFor(index, candidate.lemma, pinnedPosForRule(candidate.rule));
     if (!group) continue;
     if (isImplausible(candidate.rule, group)) continue;
     if (isOverriddenByIrregularTable(candidate.rule, candidate.lemma, group)) continue;
