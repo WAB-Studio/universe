@@ -120,7 +120,11 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   2026-09-07. Checked 2026-09-08: the published canvas contains the string `Noche` zero times.
   Nothing on it contradicts this file any more.
 - When a board and this file disagree, **this file wins**.
-- **The canvas is 142 boards**, counted 2026-09-12 from **version 33**'s own `appifact-doc` block
+- **The canvas is 144 boards**, counted 2026-09-13 from **version 34**'s own `appifact-doc` block
+  (145 `.dc.html` files plus `canvas.json`). The two added are RL-49's, `CuentaEnlaceNoVerificado`
+  and `CuentaEnlaceInvalido`, side by side on the `cuenta` page so the pair reads as the comparison
+  it is. Primary face only, no second face, and one shared annotation.
+- **The canvas was 142 boards**, counted 2026-09-12 from **version 33**'s own `appifact-doc` block
   (143 `.dc.html` files plus `canvas.json`). The one added is RL-44's fourth state,
   `SinResultadoIASinDefinicion`, on the primary face and with no second face.
 - **The canvas was 141 boards**, counted 2026-09-11 from **version 32**'s own `appifact-doc` block
@@ -232,6 +236,28 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   for a token with a case-insensitive match — they are written lowercase (`#14130f`).
 
 ## Settled
+
+- **A sign-in link that fails says which of the two failures it was, and only the spent one sends the
+  reader for a new email. Decided by the user 2026-09-13** (RL-49), from the boards
+  `CuentaEnlaceNoVerificadoOscuroMovil` and `CuentaEnlaceInvalidoOscuroMovil`.
+  - The two boards are the same screen twice and differ in two sentences, because those two
+    sentences are the whole decision.
+  - **Timeout:** «No pudimos comprobar el enlace» over «Falló de nuestro lado, no del enlace. Ábrelo
+    otra vez desde el correo; si tampoco entra, pide uno nuevo aquí.»
+  - **Spent or expired:** «El enlace no vale o ya venció» over «Pide uno nuevo aquí abajo. Cada
+    enlace sirve una sola vez y dura una hora.»
+  - **The timeout copy promises nothing about the link.** `docs/TRAPS.md` measured that a 504 says
+    nothing about whether the token was spent, so the text names the failure as ours and orders the
+    two recoveries — reopen first, ask for another second — without claiming the link survived.
+    Every email this saves is a real send from the user's own Gmail.
+  - **No retry control of its own, on the user's decision.** A «Reintentar» button carrying the same
+    `token_hash` was drawn in the question and refused: the form below is the retry everywhere else
+    in Cuenta, and a button that lands on «no vale» when the token did burn teaches the reader less
+    than the sentence does.
+  - **No red, and no second face.** The break is the hairline and full-weight ink, per "Failure"
+    above; light is this file's token table applied to the dark board and needs no drawing.
+  - **No board draws the tab row**, here or in any other `Cuenta·` board — it is drawn in
+    `CuentaInformacion*` and taken for granted in the rest.
 
 - **A word the dictionary carries is answered first, and the form it also inflects from is offered
   underneath — never instead of it. Decided by the user 2026-09-10**, written as `RL-40`, which
