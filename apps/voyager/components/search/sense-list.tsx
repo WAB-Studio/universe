@@ -21,7 +21,6 @@ import {
 } from "@/components/ui";
 import { GeneratedText, type GeneratedTextState } from "./generated-text";
 import { NetworkAnswer, type NetworkAnswerState } from "./network-answer";
-import { WordPhoto, type PhotoState } from "./word-photo";
 
 // `search-screen.tsx`'s own query name: every door this file opens onto a
 // correction is `/?q=<word>`, the same param `no-entry-answer.tsx` reads —
@@ -337,7 +336,6 @@ export function SenseList({
   variant = "full",
   wordHref,
   showExactHeadword = true,
-  photo,
   generated,
   networkAnswer,
 }: {
@@ -358,7 +356,6 @@ export function SenseList({
   // Set by `search-screen.tsx` alone, from `useDecoration` — the state a
   // network call resolved for the exact headword, never fetched here.
   // Absent on `/registro/[palabra]`, which opens no connection at all.
-  photo?: PhotoState;
   generated?: GeneratedTextState;
   // Set by `search-screen.tsx` alone (module 12), from the hook module 10
   // wires to `/api/word/unlisted`. Absent on `/registro/[palabra]` and on
@@ -398,10 +395,6 @@ export function SenseList({
           <Flex align="center" gap="1">
             {showExactHeadword && <BlockHeading word={answer.exact.headword} wordHref={wordHref} />}
             {!compact && <SpeakButton headword={answer.exact.headword} t={t} />}
-            {/* `compact` never reaches this row at all (`SenseListVariant`
-                above): the breakdown of a failed phrase asks the network for
-                nothing on eight words' behalf (RL-35's decoration clause). */}
-            {!compact && photo && <WordPhoto headword={answer.exact.headword} state={photo} />}
           </Flex>
           <SenseGroup senses={answer.exact.senses} compact={compact} t={t} />
           {!compact && generated && <GeneratedText state={generated} />}

@@ -8,8 +8,6 @@ import { POS_FREQUENCY_LICENCE_URL, POS_FREQUENCY_SOURCE_URL } from "@/lib/dicti
 import packageJson from "@/package.json";
 import { Flex, Link, MetaLabel, Separator, Text } from "@/components/ui";
 
-import { PhotoCredits } from "./photo-credits";
-
 // Imported, not fetched: the manifest is on disk at build time (RNL-04),
 // so this tab pays no request.
 const manifest = manifestSchema.parse(manifestJson);
@@ -17,12 +15,6 @@ const manifest = manifestSchema.parse(manifestJson);
 // `docs/voyager/SPEC.md`'s own model table reads the payload in MiB, so the
 // figure here is 1024^2, not the decimal megabyte.
 const BYTES_PER_MIB = 1024 * 1024;
-
-// The concreteness norms RL-36 gates the photo on (`private/concreteness.xlsx`,
-// not shipped — `scripts/build-concreteness.ts` reads it once and commits only
-// the derived headword set). No licence is declared for this source; it is
-// credited here all the same.
-const CONCRETENESS_SOURCE_URL = "https://doi.org/10.3758/s13428-013-0403-5";
 
 /**
  * `CuentaInformacion` (`docs/voyager/DESIGN.md` "Settled"): the dictionary's
@@ -91,25 +83,11 @@ export function AccountInfo() {
       <Separator size="4" />
 
       <Flex direction="column" gap="1">
-        <MetaLabel>{t("concretenessLabel")}</MetaLabel>
-        <Link href={CONCRETENESS_SOURCE_URL} target="_blank" rel="noreferrer">
-          <Text size="2">{t("concretenessName")}</Text>
-        </Link>
-        <Text size="2" muted>
-          {t("concretenessCredit")}
-        </Text>
-      </Flex>
-
-      <Separator size="4" />
-
-      <Flex direction="column" gap="1">
         <MetaLabel>{t("appLabel")}</MetaLabel>
         <Text size="2" muted>
           {t("appVersion", { version: packageJson.version })}
         </Text>
       </Flex>
-
-      <PhotoCredits />
     </Flex>
   );
 }
