@@ -3,9 +3,15 @@
    45px reserves BottomNav's own fixed box — its 44px item floor plus the 1px
    hairline on top — so the bar never sits over the last line of an answer.
    Doubled to outrank `.rt-r-p-6`, the same specificity Radix's own `p="6"`
-   sets all four sides with. */
+   sets all four sides with. `--rl-keyboard-inset` (bottom-nav.tsx) rides
+   the bar above an open keyboard the browser does not resize the layout
+   viewport for; without the same gap widening this reserve, the extra
+   scroll room a raised bar needs never exists and the last line stays
+   under it. Unset, it resolves to `0px` and this reads as it did before. */
 .page.page {
-  padding-bottom: calc(var(--space-6) + 45px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(
+    var(--space-6) + 45px + env(safe-area-inset-bottom, 0px) + var(--rl-keyboard-inset, 0px)
+  );
 }
 
 /* docs/voyager/DESIGN.md "Viewport": the reading column narrows to a measure

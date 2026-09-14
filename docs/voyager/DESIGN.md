@@ -120,7 +120,25 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   2026-09-07. Checked 2026-09-08: the published canvas contains the string `Noche` zero times.
   Nothing on it contradicts this file any more.
 - When a board and this file disagree, **this file wins**.
-- **The canvas is 126 boards**, counted 2026-09-10 from the published file's `appifact-doc` block.
+- **The canvas is 142 boards**, counted 2026-09-12 from **version 33**'s own `appifact-doc` block
+  (143 `.dc.html` files plus `canvas.json`). The one added is RL-44's fourth state,
+  `SinResultadoIASinDefinicion`, on the primary face and with no second face.
+- **The canvas was 141 boards**, counted 2026-09-11 from **version 32**'s own `appifact-doc` block
+  (142 `.dc.html` files, of which `Main.dc.html` is the entry, plus `canvas.json`). It was 135 at
+  version 31; the seven added are RL-44's three, RL-47's two, RL-45's one and RL-46's one, all on the
+  primary face and none with a second face.
+- **Read the canvas by extracting it, never by reading the page in.** `action: "read"` prints a head
+  that is the editor's own stylesheet and its base64 font — tens of thousands of tokens before a
+  single board. **Saving to disk does not spare you that head: the tool prints it and saves the file,
+  both.** Paid again 2026-09-12, with this warning already written here. There is no way to ask for
+  the file alone, so budget the head once per session and never read it twice.
+- **Republishing strips a wrapper.** The saved file opens with the publish-time skeleton — a
+  `<!doctype html><html><head>` with a small reset — and the canvas's own document starts at the
+  *second* `<!doctype html>`, at byte 356. Publish from that offset, with the trailing
+  `</body></html>` of the wrapper removed, or the page is wrapped twice. It saves the whole file to disk and that file is the artifact: pull
+  `content.files` out of the `appifact-doc` script block into one file per board, edit those, and
+  rebuild. Verified 2026-09-11 by round-tripping 142 files back through the page's own parse.
+- **The canvas was 126 boards**, counted 2026-09-10 from the published file's `appifact-doc` block.
   It was 168 that morning. **42 dark boards were deleted the same day**, on the user's decision, and
   the four-faces-per-state rule went with them (`AGENTS.md`, "Design").
 - **What was deleted, and how it was chosen.** A dark board was deleted when it is an exact colour
@@ -918,3 +936,258 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   group happens to be a verb or adjective: `abscess`, `ace`, `aim`, `antique`, `asphalt`, `alien`.
   A rule that generalises in argument and not in measurement is worth less than the list it
   replaces.
+
+- **A word the dictionary has no entry for is answered over the network on its own, and the reader
+  asks for nothing. Decided by the user 2026-09-11**, on their own words: «esta palabra me apareció
+  en el libro entonces existe, la ia debió darme una traducción con una oración y cosas no
+  simplemente decirme "no la tenemos te jodes"». **This retires `RL-29`**, whose whole point was
+  that nothing left the device until the reader pressed a control. Written as `RL-44`.
+  - What it answers, measured in production at 22:43–23:17 on 2026-09-11, after that day's deploy:
+    `whereat`, `coccidiosis`, `mangels` and `milk-pails` all reached «El diccionario no tiene esa
+    palabra. Revisa la ortografía o prueba con otra forma de la palabra» — four real words, one of
+    them hyphenated, none of them a typo, and `RL-28`'s suggestions had nothing to offer any of them
+    because they are not misspellings of anything.
+  - The dead end is the defect, not the missing entry. A dictionary of 58,946 headwords will always
+    miss the word in the book in front of the reader.
+  - **The answer must say it did not come from the dictionary, and say plainly when it could not be
+    produced.** That half of `RL-29` survives into `RL-44` unchanged.
+  - **The cost, taken knowingly:** one network call per word the dictionary misses, with nobody
+    authorising it. `RNL-09` is untouched — what leaves is the word, never the record.
+  - Boards, canvas **version 32**, page «Buscar · sin respuesta», dark × mobile — the primary face,
+    and the only one: nothing but the palette changes in light, and `SinResultadoIA` /
+    `SinResultadoIAFallo` already stand in light from the control-first design.
+    `SinResultadoIACargando` (the word and the stamp painted at once, the rest reserved, quiet and
+    not spinning), `SinResultadoIA` (translation, English definition, example with its Spanish),
+    `SinResultadoIAFallo` (the `## Failure` shape: hairline, failure line in full-weight ink, retry
+    in the ordinary accent button — no red is added, this palette has none).
+  - **An answer that arrives without a definition drops the line, and is not a failure. Decided by
+    the user 2026-09-12.** `definition` is `string|null` in the route's own contract, so the state is
+    reachable and not an edge. The label «Definición en inglés» and its paragraph both disappear and
+    the hairline closes over the example — no reserved gap, and no text explaining the absence. A
+    technical word whose translation is its cognate is answered in full by the example; calling that
+    a failure would throw away what did arrive. A missing *translation* is a different thing: there
+    is no answer at all, and that state stays `SinResultadoIAFallo`.
+  - Board, canvas **version 33**, page «Buscar · sin respuesta»: `SinResultadoIASinDefinicion`,
+    dark × mobile, fourth in the RL-44 row at x 1440. It takes for granted that translation and
+    example are both there.
+  - **Stale: `SinResultadoSinPista`**, which draws the dead end this replaces, and the light
+    `SinResultadoIA` / `SinResultadoIAFallo` pair, drawn behind a control that no longer exists.
+  - **No board exists for the light face of any of RL-44's four states, and none is needed**: the
+    token table says what light is, and drawing it again repeats a decision instead of taking one.
+
+- **A dictionary answer that is thin is completed over the network. Decided by the user
+  2026-09-11**, on their own words about `snuff`: «me dice palabras todas tontas cuando en google sí
+  me recomendó, y era aspirar, no era muy difícil la palabra como para no saberla». Written as
+  `RL-45`.
+  - Measured in production the same night: `snuff` answered «apagar, despabilar» for the verb and
+    «rapé» for the noun. Google Translate, on the same string, led with «aspirar».
+  - This is the first time the network touches a word the dictionary **does** carry. It is deliberate
+    and it is narrow: what arrives is added underneath what the dictionary said and marked as coming
+    from the network, never substituted for it.
+  - **What counts as thin is not decided yet, and it is the whole of this code's risk.** Too loose
+    and every word pays a round trip; too tight and `snuff` stays wrong. Measure the distribution
+    over the shipped index before writing the threshold, never after.
+  - Board, canvas **version 32**, page «Buscar · la palabra»: `PalabraCompletada`, dark × mobile.
+    The network line sits under the dictionary's own inside the same sense group, carrying a small
+    outlined «por internet» tag rather than the full-width stamp — provenance without turning half
+    the screen into labels. **No board for the un-completed case:** that is `Palabra`, unchanged.
+
+- **A translated sentence carries a note on the terms that are not obvious. Decided by the user
+  2026-09-11**, on their own words: «aquí es donde me gustaría que al traducir una oración también
+  definamos cosas como qué es un black minorca, que al menos haya un poco de aprendizaje en la
+  oración, no simplemente la traducción». Written as `RL-46`.
+  - Measured: `black minorca pullets` answered «pollitas negras de menorca» and stopped. The reader
+    learned the words and not the thing.
+  - The app picks which terms earn a note. A note on every word is `RL-31`'s word-by-word list,
+    which already exists and is a different answer.
+  - Board, canvas **version 32**, page «Buscar · la frase»: `FraseConNotas`, dark × mobile. The
+    notes follow the sentence's own order, not importance: the reader is following their own text.
+    **No board for a sentence with no term worth a note** — the «En la oración» block is not drawn
+    and the screen is `Frase`, which already exists.
+
+- **The form the reader typed leads the answer, and the headword it inflects from sits underneath.
+  Decided by the user 2026-09-11**, on their own words: «busco reading, la app debería decir
+  leyendo o algo relacionado, y luego abajo sí la recomendación de que esta palabra es una forma de
+  read, y así yo entenderé — no quitarme el completo significado». **This retires `RL-40`**, taken
+  2026-09-10, which put the exact entry on top and offered the inflection below it. Written as
+  `RL-47`.
+  - **RL-40 was right about the case it answered and wrong about this one.** It exists because
+    `bed` must not draw «"bed" es una forma de "b"», and that still holds: an exact entry the reader
+    typed on purpose still wins. What it never answered is the form that is *only* a form — where
+    the entry on top is a different word wearing the same spelling.
+  - Measured in production 2026-09-11 at 23:17: `swishing` answered **`swish` · ADJETIVO ·
+    «sofisticado, refinado»**. An `-ing` cannot come from an adjective; the reader typed a verb form
+    and got a word about taste. `sternly` answered **`stern` · SUSTANTIVO · «popa»** — a ship's
+    stern, for an adverb of the adjective. `shrieked` and `fidgeted` answered the bare infinitive:
+    correct and still not what was asked.
+  - **The form's own translation is what leads, resolved over the network when the dictionary has
+    no row for it**, with one example sentence. «es una forma de X» keeps `PalabraConFlexion`'s rule
+    and left border, now carrying the headword's groups underneath rather than above.
+  - **The cost, taken knowingly:** a network call on every inflected form the dictionary cannot
+    translate on its own. Answering the form from the lemma where the inflection is regular was
+    offered and **not** taken: the reader chose the form's own answer in every case.
+  - Boards, canvas **version 32**, page «Buscar · la palabra», dark × mobile: `PalabraFormaPropia`
+    and `PalabraFormaPropiaCargando`. The second draws the lemma and its groups already painted —
+    they come from the device — with the form's own answer reserved, quiet and not spinning, the
+    shape `PalabraTextoAntesDeFoto` settled 2026-09-11.
+  - **No board for the form the dictionary can translate on its own** (`left`): the «Por internet»
+    stamp is not drawn and nothing else changes, so drawing it would repeat a decision.
+  - **Stale: `Flexion`**, which draws the case RL-47 reverses — the form typed is not a headword of
+    its own, so the lemma's entry is the whole answer and stands above nothing.
+  - **`PalabraConFlexion` is not stale, and an earlier line here said it was.** It draws the exact
+    entry on top with the inflection offered below, which is the `bed` clause RL-47 **keeps**: a
+    reader who types `left` still gets `left`'s own entry first. What RL-47 reverses is the case that
+    board never drew — the form that is *only* a form, where the entry on top is a different word
+    wearing the same spelling.
+
+### The four numbers this slice runs on, decided 2026-09-11
+
+- **The network answer arrives even when a correction fits. Decided by the user 2026-09-11.**
+  `RL-44` as first written said «when a search finds nothing **and no suggestion fits**», and the
+  measurement killed that clause: `whereat` **does** have a candidate, `whereas`. Read literally, the
+  word the reader met in their book would stay in exactly the dead end they photographed. The
+  correction is offered first and the network's answer for **the word as typed** lands underneath it.
+  The clause is struck from `RL-44`.
+  - The cost, taken knowingly: a call on real typos too, where the reader will take the suggestion
+    and never read what arrived.
+  - Board: `SinResultadoIA` gains `Sugerencias`' offer above its hairline; both already exist.
+
+- **One global daily ceiling, raised. Decided by the user 2026-09-11**, who chose the global ceiling
+  over a per-route one. **The number is 500 and it is mine, not theirs** — they said «súbelo» without
+  naming one, and a ceiling is one variable, so this is the cheapest thing in the slice to move.
+  - Why 50 cannot stand: it was sized when `RL-42` alone bit. Measured, **98.5% of inflected forms
+    have no row of their own**, so `RL-47` spends a call per new form on top of `RL-42`'s per new
+    word, and `RL-46` spends one per sentence. A reading evening of 40 new words, 40 new forms and
+    20 sentences is ~100 calls. At 50 the reader hits tonight's screen halfway through a chapter.
+  - Why not much higher: the word path caches **forever and for every reader**, so its steady state
+    falls away. `RL-46` is the only one that keeps costing, and 500 leaves it room without leaving
+    the bill open.
+
+- **`RL-46` ships on, with its ceiling. Decided by the user 2026-09-11**, over shipping it dark and
+  over putting its notes behind a control. It is the first time the reader's own free text reaches a
+  paid model — the sentence already leaves for MyMemory, but a translator is not a model — and it is
+  the code that caches least: a sentence out of a book is unique, so it is ~1 call per sentence
+  against one call per word for every reader who ever looks that word up.
+  - The guard is the plan's, unchanged: **12 tokens, 200 characters, and the sentence is never stored
+    in the clear.**
+
+- **«Thin» is `≤4 translations` and `(≥2 senses or no definition)`: 9,685 of 58,944 lemmas, 16.4%.
+  Decided by the user 2026-09-11**, who asked for wider than the first rule measured.
+  - The ladder that produced it. **These are `check:thinness`'s numbers, over the real runtime
+    pipeline**: `buildIndex` groups the shipped asset into **58,944 lemmas**, which is `manifest.json`'s
+    own count, asserted as D1. An earlier table here read 59,253 and was mine — I grouped raw entries by
+    headword string without `normaliseHeadword`, so variants counted as separate lemmas. The shape of
+    the conclusion did not move; every figure did, by about two tenths of a point.
+
+    | rule | lemmas | share | catches |
+    |---|---|---|---|
+    | `≤3 tr` and `≥2 senses` | 1,885 | 3.2% | `snuff` |
+    | `≤4 tr` and `≥2 senses` | 2,463 | 4.2% | `snuff`, `stern` |
+    | **`≤4 tr` and (`≥2 senses` or no definition)** | **9,685** | **16.4%** | `snuff`, `stern` |
+    | `≤5 tr` and (`≥2 senses` or no definition) | 10,681 | 18.1% | `snuff`, `stern` |
+    | `≤4 tr`, no sense floor | 52,991 | 89.9% | everything, including `swish` |
+
+  - **The sense floor is what stops it being every word**, and dropping it is the cliff: 4.2% → 89.9%
+    in one step. What widens it safely is the missing definition — a word answered thinly **and** left
+    undefined is thin twice over. That clause alone is 2.9% → 13.6%.
+  - It catches `stern`, which the reader also hit: `sternly` answered «popa» off a 4-translation,
+    2-sense entry. It leaves out `swish` (1 sense, 1 translation — thin because the word is simple),
+    `clamp` (10), `read` (8) and `black` (11).
+
+### What one real chapter measured, 2026-09-12
+
+The reader signed in and read a chapter — **55 lookups in 43 minutes**, 22:39 to 23:22 Bogotá,
+copied up to their account. It is the first time this app has been measured against real reading
+instead of against the dictionary. The book is *Animal Farm*: `black minorca pullets`, `beech
+spinney`, `fore hoofs`, `snuffed the ground`.
+
+| what | measured |
+|---|---|
+| words / sentences | 45 distinct words, 10 sentences |
+| exact / inflected | **24 exact, 21 inflected** |
+| sentences translated **on the device** | **0 of 10.** Every one went to the network |
+| misses recorded | **0** — and see below |
+
+- **`RL-47` is not an edge case: it is 21 of 45 word lookups, 47%.** Nearly half of what this reader
+  typed was a form, not a lemma, and this is the session that returned `swishing` → «sofisticado» and
+  `sternly` → «popa».
+- **`RL-45`'s threshold holds against real use.** The rule catches **8 of these 45 words, 18%** —
+  `gilded`, `sleet`, `stern`, `snuff`, `envious`, `edible`, `shriek`, `rejoice` — against 16.4% of
+  the dictionary at large. Calibrated, not lucky.
+- **The ceiling of 500 is now grounded.** This session alone is **45 + 21 + 10 ≈ 76 calls in 43
+  minutes**. At 50 the reader hits the wall around minute 28, mid-chapter. 500 buys about 4.7 hours.
+- **`RL-08` never fires on this reader's phone.** 10 of 10 sentences carry `origin = network`, so
+  every sentence is already a paid round trip and `RL-46` adds its note to a call that happens
+  anyway.
+
+**The record cannot see the app's own failures, by design.** `lib/log/record.ts:252` sets
+`LOGGED_OUTCOMES = {exact, inflected, translated}`, so **`miss` and `untranslated` are dropped before
+they reach IndexedDB** — the comment above `commit` says a miss must never be stored. That is why
+this log holds zero misses while the same evening's screenshots show four: `whereat`, `coccidiosis`,
+`mangels`, `milk-pails`. The reason is sound — every prefix of a word being typed is a miss — but the
+consequence is that **the words that failed the reader are the only ones the app throws away**, and
+no measurement of how often the dead end fires is possible from the record. Open question for the
+user; nothing is built either way.
+
+**The dictionary is thin at one end and padded at the other, and only the thin end has a code.**
+Median translation list this session: **4**. But **13 of 45 words carry 8 or more** — `shiver` 12,
+`frost` 11, `tear` 11, `trample` 10, `creep` 10, `clamp` 10 — and the padding is archaic or regional:
+`creep` answers a story about animals creeping with «deformación por fluencia lenta, fatiga, alimaña,
+degenerado, depravado»; `gnaw` offers «chancomer, rosigar, rustir, concomer, recomer, reconcomer»;
+`pullet` offers «polla» alone, which is vulgar in half the language's speakers. `RL-45` completes the
+thin end. **Nothing trims the padded end, and no code is opened for it** — it is the user's to decide.
+
+### Pruning the dictionary was measured and refused, 2026-09-12
+
+The user asked for the padded translation lists to be trimmed when the asset is built. **Measured,
+there is almost nothing to trim, and trimming would not have changed one word of their chapter.**
+
+- **Within a part-of-speech group — which is how the screen draws it — the median is 1 translation
+  and the 90th percentile is 4.** Only 5.9% of the 64,258 groups hold more than five. Cutting every
+  group to five removes 7.3% of the asset's translations and touches tails the reader never reaches.
+- The mechanical rules fare no better. Dropping a translation that echoes the English headword is
+  4.42% of all translations; dropping a gloss of three words or more is 11.4%; together they take
+  15.8% and leave **10,335 senses with nothing at all**, so a floor would hand most of it straight
+  back. Against the reader's own chapter: `creep` 10 → 9, `clamp` 10 → 9, `gnaw` 9 → 9,
+  `trample` 10 → 10, `pullet` 1 → 1. Nothing that mattered moved.
+- **The flat soup the reader saw was `/registro`, not the word screen.** `RL-34` stores one
+  translation string cut to 120 characters, so the record flattens every group into one line —
+  «deformación por fluencia lenta, fatiga, alimaña, degenerado» is that field, not the answer.
+
+**The real defect is which group leads, and a corpus cannot fix it.** `creep`'s noun group holds 8
+translations and leads; its verb group holds 2 — «reptar, hormiguear» — and comes second. `RL-43`
+would keep it that way: SUBTLEX scores `creep` **`"nv"`**, and in film subtitles the noun really is
+commoner. A corpus-wide order cannot know the reader is in *Animal Farm*.
+
+**What the reader typed knows more than the corpus does.** Measured over their 21 inflected forms:
+**16 carry a suffix that pins a part of speech** — only a verb takes `-ing` or `-ed`, only an
+adjective takes `-ly` — and **in 5 of those 16 the group that leads is the wrong one**, every one of
+them a case `RL-43`'s table would also get wrong:
+
+| form | lemma | leads | the suffix demands | SUBTLEX says |
+|---|---|---|---|---|
+| `creeping` | `creep` | noun | verb | `nv` |
+| `shrieked` | `shriek` | noun | verb | `nv` |
+| `frosted` | `frost` | noun | verb | `nv` |
+| `toiled` | `toil` | noun | verb | `nv` |
+| `sternly` | `stern` | noun | adjective | `nj` |
+
+- **This becomes a clause of `RL-47`, not a code of its own:** when the form's suffix pins a part of
+  speech, that group leads. It is the same decision — the form the reader typed governs the answer —
+  and it costs **no network call and no table**: the suffix is already parsed to find the lemma.
+- It is the cheapest thing in this slice and it fixes `sternly` → «popa» outright, on the device,
+  with no connection.
+- **`pullet` → «polla», alone, is none of the above.** One sense, one translation, and that
+  translation is vulgar to half the language's speakers. It is not padding and not order: the
+  dictionary is simply thin there, which is `RL-45`'s case.
+
+- **A search that found nothing is recorded too. Decided by the user 2026-09-12.** Written as
+  `RL-48`. `lib/log/record.ts:252` keeps `{exact, inflected, translated}` and drops `miss` and
+  `untranslated` before they reach IndexedDB — deliberately, because every prefix of a word being
+  typed is a miss. The settling rule already solves that: it is what stops «wher» becoming a row, and
+  it applies to a miss exactly as it applies to a hit.
+  - What it cost: the reader's own log held **0 misses** for the evening whose screenshots show four
+    — `whereat`, `coccidiosis`, `mangels`, `milk-pails`. The words that failed them are the only ones
+    the app throws away, and how often the dead end fires cannot be counted from the record.
+  - **No new screen, and no board.** `/registro` draws a recorded lookup; this adds rows to it, not a
+    view. The user was offered a «what I could not answer» screen and did not take it.

@@ -40,11 +40,17 @@
   "word": {
     "viaInflection": "\"{surface}\" es una forma de \"{lemma}\"",
     "viaInflectionWithEntry": "\"{surface}\" también es una forma de \"{lemma}\"",
+    "formOf": "\"{surface}\" es una forma de \"{lemma}\"",
     "translations": "Traducciones",
+    "networkTranslations": "Traducciones de internet",
     "definitionEnglish": "Definición en inglés",
     "definitionGenerated": "Definición generada",
     "definitionGenerating": "Escribiendo una definición…",
     "generatedMark": "Generado por IA",
+    "networkMark": "Respondido por internet",
+    "networkAnswerTitle": "Respuesta de internet",
+    "networkPending": "Buscando una respuesta…",
+    "networkFailed": "No se pudo responder por internet",
     "example": "Ejemplo",
     "exampleTranslation": "Traducción",
     "photoAlt": "Foto de «{headword}»",
@@ -66,7 +72,9 @@
     "enableDevice": "Traducir en este dispositivo",
     "enableDeviceHint": "Las próximas frases se traducirán sin conexión",
     "downloadingModel": "Descargando el traductor",
-    "downloadProgress": "Descargando el traductor: {percent}%"
+    "downloadProgress": "Descargando el traductor: {percent}%",
+    "notesTitle": "Notas de la frase",
+    "notesPending": "Buscando notas…"
   },
   "log": {
     "title": "Registro de búsquedas",

@@ -5022,6 +5022,7 @@ const INSERT_GRANT_GAPS: Record<string, string[]> = {
   ],
   savings_goals: ["archived_at", "created_at", "id", "updated_at"],
   transaction_labels: [],
+  transaction_sources: ["created_at", "id"],
   transaction_splits: ["id"],
   transactions: [
     "created_at",
@@ -5159,6 +5160,15 @@ const UPDATE_GRANT_GAPS: Record<string, string[]> = {
   recurring_rules: ["created_at", "created_by", "group_id", "id", "owner_user_id", "updated_at"],
   savings_goals: ["created_at", "group_id", "id", "owner_user_id", "updated_at"],
   transaction_labels: ["label_id", "transaction_id"],
+  transaction_sources: [
+    "account_id",
+    "created_at",
+    "id",
+    "source_ref",
+    "source_seq",
+    "statement_id",
+    "transaction_id",
+  ],
   transaction_splits: ["id", "transaction_id"],
   transactions: [
     "created_at",
@@ -5203,6 +5213,7 @@ const DELETE_GRANTS: string[] = [
   "recurring_rules",
   "savings_goals",
   "transaction_labels",
+  "transaction_sources",
   "transaction_splits",
   "transactions",
   "webhook_credentials",

@@ -20,6 +20,7 @@ import {
   TapTarget,
 } from "@/components/ui";
 import { GeneratedText, type GeneratedTextState } from "./generated-text";
+import { NetworkAnswer, type NetworkAnswerState } from "./network-answer";
 import { WordPhoto, type PhotoState } from "./word-photo";
 
 // `search-screen.tsx`'s own query name: every door this file opens onto a
@@ -338,6 +339,7 @@ export function SenseList({
   showExactHeadword = true,
   photo,
   generated,
+  networkAnswer,
 }: {
   answer: WordAnswer;
   variant?: SenseListVariant;
@@ -347,16 +349,22 @@ export function SenseList({
   // headword stays plain.
   wordHref?: string;
   // False on `/registro/[palabra]` alone: that screen already draws the
-  // word as its own page heading, so the exact match's own copy of it
-  // would repeat as a second heading sharing the page heading's name.
-  // Every `viaInflection` hit still gets its own — that lemma names a
-  // different word than the page's own heading.
+  // word as its own page heading, so the exact match's own copy of it, or
+  // the form-first headword the sin-`exact` branch now leads with, would
+  // repeat as a second heading sharing the page heading's name. The offered
+  // lemma underneath still gets its own heading either way — that word
+  // never names the page.
   showExactHeadword?: boolean;
   // Set by `search-screen.tsx` alone, from `useDecoration` — the state a
   // network call resolved for the exact headword, never fetched here.
   // Absent on `/registro/[palabra]`, which opens no connection at all.
   photo?: PhotoState;
   generated?: GeneratedTextState;
+  // Set by `search-screen.tsx` alone (module 12), from the hook module 10
+  // wires to `/api/word/unlisted`. Absent on `/registro/[palabra]` and on
+  // every `compact` call, so neither opens a connection of its own
+  // (RL-47's own screen, never the breakdown's eight words at once).
+  networkAnswer?: NetworkAnswerState;
 }) {
   const t = useTranslations("word");
   const tSearch = useTranslations("search");
@@ -378,6 +386,7 @@ export function SenseList({
           )}
         </Flex>
         {answer.correction.length > 0 && <CorrectionOffer words={answer.correction} t={tSearch} />}
+        {!compact && networkAnswer && <NetworkAnswer state={networkAnswer} surface={answer.query} />}
       </Flex>
     );
   }
@@ -418,7 +427,10 @@ export function SenseList({
                       <PosLabel muted>
                         {t("viaInflectionWithEntry", { surface: hit.surface, lemma: hit.lemma })}
                       </PosLabel>
-                      <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
+                      <Flex align="center" gap="1">
+                        <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
+                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                      </Flex>
                     </Flex>
                     <SenseGroup senses={hit.group.senses} compact={compact} t={t} />
                   </Flex>
@@ -427,22 +439,45 @@ export function SenseList({
             ))}
           </Flex>
         ) : (
-          answer.viaInflection.map((hit) => (
-            <Flex direction="column" gap="3" key={`${hit.surface}-${hit.lemma}`}>
-              <Separator size="4" />
-              {/* "Lead with the English headword" (docs/voyager/DESIGN.md
-                  "The direction: Impreso") holds for a lemma reached
-                  through an inflection too — the form line explains it, it
-                  does not replace it. */}
-              <Flex direction="column" gap="1">
-                <BlockHeading word={hit.lemma} wordHref={wordHref} />
-                <Text size="1" color="gray">
-                  {t("viaInflection", { surface: hit.surface, lemma: hit.lemma })}
-                </Text>
+          // RL-47: the form is only a form — the top of the screen is a
+          // different word wearing the same spelling, so the form the
+          // reader typed leads and the lemma it comes from sits under the
+          // 2px rule, in the same rail the `exact` branch above offers it
+          // from (docs/voyager/DESIGN.md "The form the reader typed leads
+          // the answer"). Every hit shares one `surface` (`lookupWord`
+          // fixes it once per query), so the headword and its network
+          // answer draw once, ahead of however many lemma candidates follow.
+          <Flex direction="column" gap="4">
+            <Flex direction="column" gap="3">
+              <Flex align="center" gap="1">
+                {showExactHeadword && (
+                  <BlockHeading word={answer.viaInflection[0].surface} wordHref={wordHref} />
+                )}
+                {!compact && <SpeakButton headword={answer.viaInflection[0].surface} t={t} />}
               </Flex>
-              <SenseGroup senses={hit.group.senses} compact={compact} t={t} />
+              {!compact && networkAnswer && (
+                <NetworkAnswer state={networkAnswer} surface={answer.viaInflection[0].surface} />
+              )}
             </Flex>
-          ))
+            <Separator size="4" weight="heavy" />
+            {answer.viaInflection.map((hit, index) => (
+              <Flex direction="column" gap="3" key={`${hit.surface}-${hit.lemma}`}>
+                {index > 0 && <Separator size="4" />}
+                <Box rail>
+                  <Flex direction="column" gap="3">
+                    <Flex direction="column" gap="1">
+                      <PosLabel muted>{t("formOf", { surface: hit.surface, lemma: hit.lemma })}</PosLabel>
+                      <Flex align="center" gap="1">
+                        <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
+                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                      </Flex>
+                    </Flex>
+                    <SenseGroup senses={hit.group.senses} compact={compact} t={t} />
+                  </Flex>
+                </Box>
+              </Flex>
+            ))}
+          </Flex>
         ))}
     </Flex>
   );

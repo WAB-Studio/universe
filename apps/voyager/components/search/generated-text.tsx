@@ -48,6 +48,10 @@ export function GeneratedText({ state }: { state: GeneratedTextState }) {
   // this case (docs/voyager/DESIGN.md, `PalabraSinDefinicionOscuroMovil` is
   // the no-network/no-result/capped state, not this one).
   const hasDefinition = text.definition !== null;
+  // RL-45: only a lemma the dictionary answered thin ever carries these
+  // (`isThinAnswer`, `apps/voyager/lib/word/thin.ts`); every other lemma's
+  // `translations` is `null` and this block draws nothing, same as today.
+  const hasNetworkTranslations = text.translations !== null && text.translations.length > 0;
 
   return (
     <Flex direction="column" data-generated-block="">
@@ -82,6 +86,29 @@ export function GeneratedText({ state }: { state: GeneratedTextState }) {
               </Text>
             </Flex>
           </Flex>
+          {hasNetworkTranslations && (
+            // Added under the dictionary's own translations, inside the same
+            // sense group (docs/voyager/DESIGN.md "A dictionary answer that
+            // is thin"), never inside `SenseGroup` itself — this block only
+            // ever sits below what `sense-list.tsx` already drew.
+            <Flex direction="column" gap="2" data-network-translations="">
+              <Flex align="center" gap="2">
+                <Text variant="definitionLabel" muted>
+                  {t("networkTranslations")}
+                </Text>
+                <Text variant="generatedMark" muted="quietest">
+                  {t("networkMark")}
+                </Text>
+              </Flex>
+              <Flex direction="column" gap="1">
+                {text.translations?.map((translation) => (
+                  <Text variant="translation" key={translation}>
+                    {translation}
+                  </Text>
+                ))}
+              </Flex>
+            </Flex>
+          )}
         </Flex>
       </Box>
       <Separator size="4" />

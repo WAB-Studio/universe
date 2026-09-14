@@ -1,0 +1,667 @@
+{
+  "id": "cbcd876e-b8c4-4963-aab5-c8485b5673a9",
+  "prevId": "fb5bbf27-d077-46c3-81f8-2e7c250418e2",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "reading.lookups": {
+      "name": "lookups",
+      "schema": "reading",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_id": {
+          "name": "local_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "normalised": {
+          "name": "normalised",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headword": {
+          "name": "headword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rule": {
+          "name": "rule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "senses": {
+          "name": "senses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "translation": {
+          "name": "translation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dictionary_ready": {
+          "name": "dictionary_ready",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "record_schema": {
+          "name": "record_schema",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "lookups_user_id_received_at_idx": {
+          "name": "lookups_user_id_received_at_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "received_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lookups_user_id_users_id_fk": {
+          "name": "lookups_user_id_users_id_fk",
+          "tableFrom": "lookups",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lookups_user_id_device_id_local_id_pk": {
+          "name": "lookups_user_id_device_id_local_id_pk",
+          "columns": [
+            "user_id",
+            "device_id",
+            "local_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "lookups_select_self": {
+          "name": "lookups_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"reading\".\"lookups\".\"user_id\""
+        },
+        "lookups_insert_self": {
+          "name": "lookups_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"reading\".\"lookups\".\"user_id\""
+        },
+        "lookups_delete_self": {
+          "name": "lookups_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"reading\".\"lookups\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "lookups_local_id_positive": {
+          "name": "lookups_local_id_positive",
+          "value": "\"reading\".\"lookups\".\"local_id\" > 0"
+        },
+        "lookups_senses_non_negative": {
+          "name": "lookups_senses_non_negative",
+          "value": "\"reading\".\"lookups\".\"senses\" >= 0"
+        },
+        "lookups_translation_length": {
+          "name": "lookups_translation_length",
+          "value": "length(\"reading\".\"lookups\".\"translation\") <= 120"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "reading.devices": {
+      "name": "devices",
+      "schema": "reading",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "device_id": {
+          "name": "device_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "devices_user_id_users_id_fk": {
+          "name": "devices_user_id_users_id_fk",
+          "tableFrom": "devices",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "devices_user_id_device_id_pk": {
+          "name": "devices_user_id_device_id_pk",
+          "columns": [
+            "user_id",
+            "device_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "devices_select_self": {
+          "name": "devices_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"reading\".\"devices\".\"user_id\""
+        },
+        "devices_insert_self": {
+          "name": "devices_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"reading\".\"devices\".\"user_id\""
+        },
+        "devices_update_self": {
+          "name": "devices_update_self",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"reading\".\"devices\".\"user_id\"",
+          "withCheck": "(select auth.uid()) = \"reading\".\"devices\".\"user_id\""
+        },
+        "devices_delete_self": {
+          "name": "devices_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"reading\".\"devices\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "devices_label_length": {
+          "name": "devices_label_length",
+          "value": "length(\"reading\".\"devices\".\"label\") between 1 and 60"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "reading.word_photos": {
+      "name": "word_photos",
+      "schema": "reading",
+      "columns": {
+        "headword": {
+          "name": "headword",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_path": {
+          "name": "object_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "width": {
+          "name": "width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "licence": {
+          "name": "licence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "licence_url": {
+          "name": "licence_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "word_photos_none_has_no_path": {
+          "name": "word_photos_none_has_no_path",
+          "value": "\"reading\".\"word_photos\".\"status\" <> 'none' OR \"reading\".\"word_photos\".\"object_path\" IS NULL"
+        },
+        "word_photos_found_has_attribution": {
+          "name": "word_photos_found_has_attribution",
+          "value": "\"reading\".\"word_photos\".\"status\" <> 'found' OR (\"reading\".\"word_photos\".\"object_path\" IS NOT NULL AND \"reading\".\"word_photos\".\"author\" IS NOT NULL AND \"reading\".\"word_photos\".\"licence\" IS NOT NULL AND \"reading\".\"word_photos\".\"source_url\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "reading.word_texts": {
+      "name": "word_texts",
+      "schema": "reading",
+      "columns": {
+        "headword": {
+          "name": "headword",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "definition": {
+          "name": "definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "example_en": {
+          "name": "example_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "example_es": {
+          "name": "example_es",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "translations": {
+          "name": "translations",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "translations_asked": {
+          "name": "translations_asked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "reading.model_spend": {
+      "name": "model_spend",
+      "schema": "reading",
+      "columns": {
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "calls": {
+          "name": "calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "photos": {
+          "name": "photos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "model_spend_calls_non_negative": {
+          "name": "model_spend_calls_non_negative",
+          "value": "\"reading\".\"model_spend\".\"calls\" >= 0"
+        },
+        "model_spend_photos_non_negative": {
+          "name": "model_spend_photos_non_negative",
+          "value": "\"reading\".\"model_spend\".\"photos\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "reading.word_answers": {
+      "name": "word_answers",
+      "schema": "reading",
+      "columns": {
+        "word": {
+          "name": "word",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lemma": {
+          "name": "lemma",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rule": {
+          "name": "rule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "translations": {
+          "name": "translations",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "definition": {
+          "name": "definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "example_en": {
+          "name": "example_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "example_es": {
+          "name": "example_es",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "reading.phrase_notes": {
+      "name": "phrase_notes",
+      "schema": "reading",
+      "columns": {
+        "phrase_hash": {
+          "name": "phrase_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "reading.client_spend": {
+      "name": "client_spend",
+      "schema": "reading",
+      "columns": {
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "calls": {
+          "name": "calls",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "client_spend_day_client_pk": {
+          "name": "client_spend_day_client_pk",
+          "columns": [
+            "day",
+            "client"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "client_spend_calls_non_negative": {
+          "name": "client_spend_calls_non_negative",
+          "value": "\"reading\".\"client_spend\".\"calls\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

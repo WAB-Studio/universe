@@ -1,4 +1,4 @@
-import { text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, text, timestamp } from "drizzle-orm/pg-core";
 
 import { reading } from "./_schema";
 
@@ -13,6 +13,10 @@ export const wordTexts = reading.table("word_texts", {
   exampleEs: text().notNull(),
   model: text().notNull(),
   resolvedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  // RL-45's network translations for a thin entry, asked for once and cached
+  // beside the example: null until asked, an empty array is a real "none".
+  translations: text().array(),
+  translationsAsked: boolean().notNull().default(false),
 });
 
 export type WordTextRow = typeof wordTexts.$inferSelect;

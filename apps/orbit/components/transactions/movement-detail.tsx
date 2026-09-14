@@ -226,6 +226,8 @@ export function MovementDetail({
           movement={movement}
           options={options}
           creatorName={creatorName}
+          cause={cause}
+          causedCharges={causedCharges}
         />
       </Box>
 

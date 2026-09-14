@@ -174,6 +174,11 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
   that module's PR. It earns its own PR only when no work produced it.
   Measured 2026-09-08: 4 of the day's 17 PRs were docs alone, three of them one Markdown file, and
   each cost two Vercel deployments per push and a place in the one-slot `e2e` queue.
+- **`main` refuses a direct push: the deploy goes through a pull request.** Measured 2026-09-11:
+  `git push origin main` is rejected with `GH013 ... Changes must be made through a pull request`,
+  even fast-forward and even with every check already green. Open it `integracion` → `main` and
+  merge with `--merge`, the way `#140` and `#168` were. No check is required to merge it; the pull
+  request itself is.
 - Ask before taking `integracion` to `main`. Nothing else — a merge to `integracion` needs no asking.
 
 ## Verification

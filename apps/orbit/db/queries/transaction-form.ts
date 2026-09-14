@@ -10,9 +10,16 @@ import type { ScopedCategoryNode } from "@/db/queries/categories";
 import { listCallerMembers } from "@/db/queries/group-members";
 import { listScopedLabels } from "@/db/queries/labels";
 import type { ScopedLabelRow } from "@/db/queries/labels";
+import { listTransactions } from "@/db/queries/transactions";
+import type { TransactionListRow } from "@/db/queries/transactions";
 import { transactions } from "@/db/schema";
 import { getSessionUser, requireUser, withUserDb } from "@/db/session";
 import { BASE_CURRENCY, currencySchema } from "@/lib/currency";
+
+// Enough candidates for the "this is a charge on…" picker (RF-132) without
+// costing a search field of its own; the newest rows are what a charge just
+// posted is almost always attached to.
+const CAUSE_CANDIDATE_LIMIT = 30;
 
 // A category carries the scope it was read for (RF-62), so the form can tell a
 // personal category apart from the group's without a second lookup.
@@ -41,6 +48,10 @@ export type TransactionFormOptions = {
   // they hold no fund. Two rows a form cannot see, so it rides here rather than
   // costing a read of its own.
   scopeCurrency: OfferedCurrency;
+  // Candidates for the "this is a charge on…" picker (RF-132): the caller's
+  // most recent movements, newest first. A caller offers a fresh charge to
+  // attach against these; the movement already under edit filters itself out.
+  recentMovements: TransactionListRow[];
 };
 
 /**
@@ -62,6 +73,7 @@ export const getTransactionFormOptions = cache(
       members,
       lastUsedAccountId,
       currencies,
+      recentMovements,
     ] = await Promise.all([
       listAccounts({ archived: false }),
       listScopedCategories(user.id),
@@ -69,6 +81,7 @@ export const getTransactionFormOptions = cache(
       listCallerMembers(user.id, { archived: false }),
       getLastUsedAccountId(),
       listCurrencyOptions(),
+      listTransactions({}, { limit: CAUSE_CANDIDATE_LIMIT }),
     ]);
 
     return {
@@ -82,6 +95,7 @@ export const getTransactionFormOptions = cache(
       lastUsedAccountId,
       accountCurrencies: currencies.accountCurrencies,
       scopeCurrency: currencies.scopeCurrency,
+      recentMovements,
     };
   },
 );

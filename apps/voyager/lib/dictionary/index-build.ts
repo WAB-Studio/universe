@@ -1,4 +1,5 @@
 import { normaliseHeadword, type DictionaryPayload, type PartOfSpeech, type RawEntry } from "./format";
+import type { InflectionRule } from "./inflect";
 import { POS_FREQUENCY_ORDER } from "./pos-frequency";
 
 export type Sense = {
@@ -32,6 +33,29 @@ export const POS_RANK: Record<PartOfSpeech, number> = {
   phraseologicalUnit: 5,
 };
 
+// RL-47's suffix clause: only a verb takes "-ing" or "-ed", only an
+// adjective takes "-ly", and a plural names a noun. A rule not listed here
+// —identity, irregular, comparative, superlative, possessive— strips no
+// suffix that fixes a category, so it pins nothing.
+const SUFFIX_POS: Partial<Record<InflectionRule, PartOfSpeech>> = {
+  "past-ed": "v",
+  "past-ied": "v",
+  "past-doubled": "v",
+  ing: "v",
+  "ing-e": "v",
+  "ing-doubled": "v",
+  "adverb-ly": "adj",
+  "plural-s": "n",
+  "plural-es": "n",
+  "plural-ies": "n",
+};
+
+// The part of speech a lemma candidate's rule fixes, or null when the
+// surface carries no such suffix.
+export function pinnedPosForRule(rule: InflectionRule): PartOfSpeech | null {
+  return SUFFIX_POS[rule] ?? null;
+}
+
 // pos-frequency.ts's single-letter codes, decoded back to a PartOfSpeech.
 const FREQUENCY_CODE: Record<string, Exclude<PartOfSpeech, "phraseologicalUnit">> = {
   n: "n",
@@ -52,11 +76,16 @@ function frequencyRank(order: string | undefined, pos: PartOfSpeech): number | n
   return null;
 }
 
-// Measured beats unmeasured: a sense SUBTLEX-US actually scored answers
-// before one it never mentions, whatever POS_RANK would have said. Two
-// unmeasured senses, or a headword with no row at all, still fall back to
-// POS_RANK.
-function compareSenses(order: string | undefined, a: Sense, b: Sense): number {
+// RL-47's suffix clause outranks both: the typed form already told the
+// reader which category to expect, so a sense carrying it leads whether or
+// not SUBTLEX ever scored that headword. A lemma with no sense in the
+// pinned category leaves both flags false and falls through unchanged.
+function compareSenses(order: string | undefined, pinnedPos: PartOfSpeech | null, a: Sense, b: Sense): number {
+  if (pinnedPos) {
+    const aPinned = a.pos === pinnedPos;
+    const bPinned = b.pos === pinnedPos;
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+  }
   const rankA = frequencyRank(order, a.pos);
   const rankB = frequencyRank(order, b.pos);
   if (rankA !== null && rankB !== null) return rankA - rankB;
@@ -97,13 +126,18 @@ export function buildIndex(payload: DictionaryPayload): DictionaryIndex {
 // A headword is a group of senses, never a row: every entry sharing a
 // normalised headword answers together, ordered by how often each part of
 // speech is really used (RL-43) where pos-frequency.ts has a row for it,
-// POS_RANK otherwise.
-export function groupFor(index: DictionaryIndex, normalisedHeadword: string): SenseGroup | null {
+// POS_RANK otherwise — unless pinnedPos names a category the group itself
+// carries, in which case that category's senses lead (RL-47).
+export function groupFor(
+  index: DictionaryIndex,
+  normalisedHeadword: string,
+  pinnedPos: PartOfSpeech | null = null,
+): SenseGroup | null {
   const offsets = index.byHeadword.get(normalisedHeadword);
   if (!offsets) return null;
   const order = POS_FREQUENCY_ORDER.get(normalisedHeadword);
   const senses = offsets
     .map((offset) => senseFromEntry(index.entries[offset]))
-    .sort((a, b) => compareSenses(order, a, b));
+    .sort((a, b) => compareSenses(order, pinnedPos, a, b));
   return { headword: normalisedHeadword, senses };
 }

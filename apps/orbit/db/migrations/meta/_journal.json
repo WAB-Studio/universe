@@ -337,6 +337,13 @@
       "when": 1788796964269,
       "tag": "0047_the_triggers_follow_their_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789161395778,
+      "tag": "0048_one_source_reference_per_leg",
+      "breakpoints": true
     }
   ]
 }

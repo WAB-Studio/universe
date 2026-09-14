@@ -143,6 +143,30 @@ export function BottomNav() {
     if (pathname === "/") storeQuery(query);
   }, [pathname, query]);
 
+  // Chrome on Android reads no `interactiveWidget`: an open keyboard
+  // shrinks `visualViewport` alone, and the fixed bar — sized against the
+  // layout viewport — sits under it. The gap between the two is the
+  // keyboard's own height; `bottom-nav.module.css` adds it to `bottom` so
+  // the bar rides above the keyboard instead. Absent `visualViewport`
+  // itself, nothing here runs and the CSS variable stays unset.
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    function writeKeyboardInset(): void {
+      const inset = Math.max(0, window.innerHeight - visualViewport!.height - visualViewport!.offsetTop);
+      document.documentElement.style.setProperty("--rl-keyboard-inset", `${inset}px`);
+    }
+
+    writeKeyboardInset();
+    visualViewport.addEventListener("resize", writeKeyboardInset);
+    visualViewport.addEventListener("scroll", writeKeyboardInset);
+    return () => {
+      visualViewport.removeEventListener("resize", writeKeyboardInset);
+      visualViewport.removeEventListener("scroll", writeKeyboardInset);
+    };
+  }, []);
+
   return (
     <nav className={styles.nav} aria-label={t("label")}>
       <Heading className={styles.title}>{tMeta("title")}</Heading>

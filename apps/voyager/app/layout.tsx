@@ -29,8 +29,13 @@ const serif = Newsreader({
 });
 
 // Lets env(safe-area-inset-*) resolve instead of 0 on a notched phone.
+// `interactiveWidget: "resizes-content"` (RNL-03) shrinks the layout
+// viewport itself under an open keyboard on the browsers that read it, so
+// the fixed bar and `dvh` never sit under it there. `bottom-nav.tsx` is
+// the fallback for the browser that does not.
 export const viewport: Viewport = {
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

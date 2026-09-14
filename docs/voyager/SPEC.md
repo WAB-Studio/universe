@@ -46,7 +46,7 @@ this gets built, and no schema, table or column is "prepared for" it.
 #### The word
 
 - [ ] **RL-04** — A headword's answer shows every sense the dictionary carries for it, grouped by part of speech, each with its IPA when one exists and all of its Spanish translations.
-- [ ] **RL-43** — Those groups are ordered by how often the word is really used in each part of
+- [x] **RL-43** — Those groups are ordered by how often the word is really used in each part of
   speech, not by a rank fixed in advance. `grudge` answers as «rencor» before its rare verb, and
   `leave` still answers as «dejar» before «permiso» — an order no single rank can give both. The
   frequency is a table built once, read on the device, and never a request: the answer stays whole
@@ -61,11 +61,28 @@ this gets built, and no schema, table or column is "prepared for" it.
   prototype run the day the decision was taken said 1,808, and the eleven-row gap is headwords whose
   two parts of speech are used equally often, where nothing defines which wins. The shipped table is
   54.4 KB, 11.6 KB compressed, against a 8.2 MB dictionary.
-- [x] **RL-40** — An inflected form resolves to its headword, and the answer names both the form
-  typed and the headword reached: `went` finds `go`, `children` finds `child`, `studies` finds
-  `study`. When the form typed is itself a headword, its own entry answers first and the headword it
-  also inflects from is **offered below it, never instead of it**: `left` answers as «izquierda» and
-  offers `leave` under it. Board: `PalabraConFlexion`.
+
+  **Driven, not asserted, 2026-09-12** against the running app with the decoration routes stubbed:
+  `grudge` draws SUSTANTIVO «rencor, manía, ojeriza» before VERBO, and `leave` draws VERBO «dejar,
+  abandonar…» before SUSTANTIVO «permiso, excedencia…» — the two opposite orders this code's own
+  text claims, out of one table. The table was already wired through `groupFor`
+  (`lib/dictionary/index-build.ts:101`) and credited at `/cuenta`; only the tick was missing.
+
+  **What it cannot do, measured the same day.** The order is a corpus's, so it is wrong wherever the
+  reader's book disagrees with film subtitles. `creep` is scored `"nv"` and draws its noun group —
+  «deformación por fluencia lenta, fatiga, alimaña, degenerado» — above «reptar, hormiguear», to a
+  reader in *Animal Farm*. Four more did the same: `shriek`, `frost`, `toil` and `stern`. **RL-47's
+  suffix clause is what answers those**, from the device and with no table at all, because an `-ing`
+  can only be a verb and an `-ly` can only come from an adjective. See `DESIGN.md`, "Pruning the
+  dictionary was measured and refused".
+- [x] **RL-47** *(successor of RL-40)* — The form the reader typed leads the answer with its own
+  translation and one example sentence, resolved over the network when the dictionary has no row for
+  the form itself. The headword it inflects from sits **underneath**, named as such, with its own
+  sense groups: `swishing` answers «silbando» and offers `swish` under it. An exact entry the reader
+  typed on purpose still wins the top of the screen: `bed` answers as `bed` and offers nothing.
+  **When the form's suffix pins a part of speech — only a verb takes `-ing` or `-ed`, only an
+  adjective takes `-ly` — that group leads the headword's own, ahead of any frequency order.** It is
+  answered from the device and touches the network on no keystroke.
   - Measured 2026-09-10 by `apps/voyager/scripts/check-dictionary.ts`: **D7 back to 53/53** from the
     34 that `#128` left, and **D12 new — 27 candidates carried a defect before the filter, 0 after**.
     The filter is two rules, both driven against the shipped asset: a one-letter lemma is not a lemma
@@ -76,6 +93,10 @@ this gets built, and no schema, table or column is "prepared for" it.
   - Driven, not asserted: `bed` answers with its own entry and offers nothing; `left` offers `leave`,
     `faster` offers `fast`, `gone` offers `go`, `women` offers `woman`, `people` offers `person`.
     `word` offers nothing, so an answered query gains no clutter.
+
+- [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
+  record holds what the dictionary could not answer and not only what it could. The same settling rule
+  governs it: a word half-typed is never a row.
 - [ ] **RL-07** — Autocomplete appears only while the string is being treated as a word. A sentence never raises it.
 - [x] **RL-26** — A headword's answer can be heard. The device speaks it with the voice the browser
   already carries, so a headword with no IPA is spoken exactly like one that has it. Decided by the
@@ -103,7 +124,8 @@ this gets built, and no schema, table or column is "prepared for" it.
 
   **The daily cap is the on-switch, not just a limit.** `WORD_TEXT_DAILY_CALL_CAP` is optional, and
   left unset the route answers `204` to every cold word: generated text is off until a number is set.
-  **That number is 50, decided by the user 2026-09-10.** It bounds distinct new words per day, not
+  **That number is 500, raised from 50 by the user 2026-09-11.** Measured against a real reading
+  session: ~76 calls in 43 minutes, so 50 emptied mid-chapter. It bounds distinct new words per day, not
   words lacking a definition — the example generates for every word looked up, so a word that already
   has a definition still costs one call. A cap that bites costs nothing: the reader gets the screen
   RL-35 already draws. `WORD_PHOTO_DAILY_CAP` is the opposite by design — left unset it means no
@@ -201,9 +223,19 @@ this gets built, and no schema, table or column is "prepared for" it.
 - [ ] **RL-28** — When a search finds nothing and the word looks like a typo of one the dictionary
   has, the answer offers the words it might have been, and reaching one of them is a tap. The
   suggestion is computed on the device and touches the network on no keystroke.
-- [ ] **RL-29** — When a search finds nothing and no suggestion fits, the reader can ask for the word
-  to be answered over the network, and only by asking: nothing is sent until they do. The answer says
-  it did not come from the dictionary, and says plainly when it could not be produced.
+- [x] **RL-44** *(successor of RL-29)* — When a search finds nothing, the word is answered over the
+  network on its own, and the reader asks for nothing. A suggestion RL-28 finds is offered above it
+  and never instead of it: `whereat` offers `whereas` and still answers `whereat`. The answer carries the
+  word's translation, its definition and one example sentence with its Spanish translation. It says
+  it did not come from the dictionary, and says plainly when it could not be produced. A hyphenated
+  string the dictionary has no entry for reaches this answer like any other word.
+- [x] **RL-45** — A dictionary answer that is thin — at most four translations, and either more than
+  one sense or no definition at all — is completed over the network. What arrives is
+  added underneath what the dictionary said and marked as coming from the network; it never replaces
+  it. What counts as thin is measured over the shipped index, not asserted.
+- [x] **RL-46** — A sentence answered by translation also names the terms in it that are not obvious
+  and says what they are. The app picks which terms earn a note; a note on every word is RL-31's
+  answer, not this one.
 - [ ] **RL-31** — A string of more than one word that the dictionary has no entry for, and that is
   not treated as a sentence, never gets silence: the app names what it did not find and offers,
   underneath, the dictionary's own answer for each of its words. It answers from the device, and
@@ -246,6 +278,35 @@ this gets built, and no schema, table or column is "prepared for" it.
 ### Retired
 
 Dead codes. The number stays burned and the tick stays as it was.
+
+- [x] **RL-40** — An inflected form resolves to its headword, and the answer names both the form
+  typed and the headword reached: `went` finds `go`, `children` finds `child`, `studies` finds
+  `study`. When the form typed is itself a headword, its own entry answers first and the headword it
+  also inflects from is **offered below it, never instead of it**: `left` answers as «izquierda» and
+  offers `leave` under it. Board: `PalabraConFlexion`.
+  - Measured 2026-09-10 by `apps/voyager/scripts/check-dictionary.ts`: **D7 back to 53/53** from the
+    34 that `#128` left, and **D12 new — 27 candidates carried a defect before the filter, 0 after**.
+    The filter is two rules, both driven against the shipped asset: a one-letter lemma is not a lemma
+    (`bed` → `b`), and a regular suffix rule loses to `IRREGULAR_FORMS` where the table governs that
+    category (`bed` → `be`, whose real past is `was`/`were`). Matched by rule family, not blindly:
+    `running` → `run` survives, because `-ing` has no irregular family to lose to even though `run`
+    is in the table for `ran`.
+  - Driven, not asserted: `bed` answers with its own entry and offers nothing; `left` offers `leave`,
+    `faster` offers `fast`, `gone` offers `go`, `women` offers `woman`, `people` offers `person`.
+    `word` offers nothing, so an answered query gains no clutter.
+  _Retired 2026-09-11. Successor: RL-47. Its lemma resolution and its one-letter and irregular-family
+  filters all survive; what changed is the order. Measured in production that night: `swishing`
+  answered `swish` · ADJETIVO · «sofisticado, refinado», and `sternly` answered `stern` ·
+  SUSTANTIVO · «popa». The exact entry winning the top is right for `bed` and wrong for a form that
+  is only a form, and RL-40 could not tell the two apart. The `bed` half is written into RL-47._
+
+- [ ] **RL-29** — When a search finds nothing and no suggestion fits, the reader can ask for the word
+  to be answered over the network, and only by asking: nothing is sent until they do. The answer says
+  it did not come from the dictionary, and says plainly when it could not be produced.
+  _Retired 2026-09-11. Successor: RL-44. Never built. The reader measured the dead end in production
+  the night of the deploy — `whereat`, `coccidiosis`, `mangels` and `milk-pails`, four real words,
+  none of them a typo — and took the control out: the answer comes on its own. The half that says
+  the answer did not come from the dictionary, and says plainly when it failed, survives in RL-44._
 
 - [x] **RL-06** — An inflected form resolves to its headword, and the answer names both the form typed and the headword reached: `left` finds `leave`, `went` finds `go`, `children` finds `child`, `studies` finds `study`.
   - Measured 2026-09-07 by `apps/voyager/scripts/check-dictionary.ts` (D9), over a sample of 2,345 regular surface forms generated from 301 stride-sampled single-word letter headwords by applying the regular suffix rules, plus all 386 `IRREGULAR_FORMS` surfaces: the real coverage figure is the **irregular-only rate, 367/386 = 95.1%**, the only non-circular signal since those surfaces come from a hand-written table no rule can reach. The generated forms resolve at 2345/2345 = 100.0%, a closed loop that proves the resolver inverts its own suffix rules, not real coverage. Blended (generated + irregular together, the number that includes the closed loop): 2712/2731 = 99.3%.

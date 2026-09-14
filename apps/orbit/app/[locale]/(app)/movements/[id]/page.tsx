@@ -9,7 +9,7 @@ import {
   getTransactionFormOptions,
   resolveCreatorNames,
 } from "@/db/queries/transaction-form";
-import { getTransactionById } from "@/db/queries/transactions";
+import { getTransactionById, listTransactions } from "@/db/queries/transactions";
 import { routing } from "@/i18n/routing";
 
 export async function generateMetadata(
@@ -33,17 +33,26 @@ export default async function MovementPage(
 
   // The read is scoped by RLS, so a movement the caller may not see returns null;
   // the form options ride the same fan-out for the edit dialog and the
-  // account/category names the detail reads.
-  const [movement, options] = await Promise.all([
+  // account/category names the detail reads. The charges this movement caused
+  // need no cause id to look up, so they ride this same round trip too (RF-132).
+  const [movement, options, causedCharges] = await Promise.all([
     getTransactionById(id),
     getTransactionFormOptions(),
+    listTransactions({ causedByTransactionId: id }),
   ]);
 
   if (!movement) notFound();
 
-  // The creator's id names the row; the map turns it into a member's name (an
-  // archived member included) or, only for the caller's own id, their email.
-  const creatorNames = await resolveCreatorNames([movement.createdBy]);
+  // Both reads below need the movement, so neither could join the fan-out
+  // above; they still run together rather than one after the other.
+  const [creatorNames, cause] = await Promise.all([
+    // The creator's id names the row; the map turns it into a member's name (an
+    // archived member included) or, only for the caller's own id, their email.
+    resolveCreatorNames([movement.createdBy]),
+    movement.causedByTransactionId
+      ? getTransactionById(movement.causedByTransactionId)
+      : Promise.resolve(null),
+  ]);
 
   return (
     // The desktop detail carries the gutter itself, band by band (SPEC-A3).
@@ -52,6 +61,8 @@ export default async function MovementPage(
         movement={movement}
         options={options}
         creatorName={creatorNames.get(movement.createdBy) ?? null}
+        cause={cause}
+        causedCharges={causedCharges}
       />
     </Page>
   );

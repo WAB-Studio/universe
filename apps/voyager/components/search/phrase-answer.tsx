@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import type { TranslationResult } from "@/lib/translate/types";
 import { Button, Flex, MetaLabel, Progress, Spinner, Text } from "@/components/ui";
+import { PhraseNotes } from "./phrase-notes";
 
 // What stage a sentence lookup is at. The composing module owns the debounce,
 // the token floor and the request itself; this only draws the stage it lands
@@ -66,6 +67,11 @@ export function PhraseAnswer({
           </MetaLabel>
         </Flex>
       )}
+
+      {/* RL-46: only mounted once a translation already answered, and only
+          this leaf ever asks for its own notes — this file gains no state
+          and no request of its own on its account. */}
+      {state.kind === "done" && <PhraseNotes source={source} translation={state.result.text} />}
 
       {offer.kind === "offered" && (
         <Flex direction="column" gap="1" align="start">

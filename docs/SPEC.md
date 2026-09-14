@@ -280,6 +280,8 @@ erDiagram
     accounts ||--o| debt_terms : "if liability"
     accounts ||--o{ installment_plans : "schedules"
     accounts ||--o{ account_statements : "closes"
+    transactions ||--o{ transaction_sources : "references"
+    account_statements ||--o{ transaction_sources : "names"
     installment_plans ||--o{ installment_lines : "generates"
     accounts ||--o{ transactions : "source"
     accounts ||--o{ transactions : "destination"
@@ -449,6 +451,16 @@ erDiagram
         uuid transaction_id FK
         uuid category_id FK
         bigint amount_cents
+    }
+
+    transaction_sources {
+        uuid id PK
+        uuid transaction_id FK
+        uuid account_id FK
+        uuid statement_id FK "null once the statement is gone"
+        text source_ref "the bank's own reference for this leg"
+        integer source_seq "line ordinal; null once a real reference exists"
+        timestamptz created_at
     }
 
     labels {
@@ -699,6 +711,8 @@ Rules the model must always guarantee, regardless of how they are implemented:
   zero. The difference between a statement's printed closing balance and the
   balance derived from movements, in the account's own settlement currency, is
   computed on read and never stored.
+- A movement carries at most one source reference per account leg; a
+  statement's rows are replaced as a unit.
 - A group's `cash_mode` is `shared` (a single group cash account) or
   `per_member` (one cash account per member).
 - Money is an integer number of cents.

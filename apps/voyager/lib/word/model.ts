@@ -17,38 +17,72 @@ const CHAT_COMPLETIONS_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 // unset, never "minimal" for this task.
 const REASONING_EFFORT = "low";
 
-// 700 covers a single headword's definition and example comfortably: the
-// 12-entry batch that measured `low` spent 3,007 output tokens on twelve.
-const MAX_OUTPUT_TOKENS = 700;
+// RL-45's "translations" field pushes this model's own reasoning past 700 on
+// 3 of 4 tries against `snuff` — `finish_reason: "length"`, the whole budget
+// spent on reasoning and none on content, so the JSON truncates to nothing
+// and the call answers null. At 2000 every try finishes, reasoning between
+// 320 and 960, and a word that is not thin still spends only 193 to 321.
+const MAX_OUTPUT_TOKENS = 2000;
 
 type ChatCompletionsPayload = {
   choices?: Array<{ message?: { content?: string } }>;
 };
 
-function buildSystemPrompt(headword: string, wantDefinition: boolean): string {
+// RL-45's ask, folded into the one prompt: `existingTranslations` null means
+// the entry was never thin and none is wanted; an array (even empty) is
+// what the dictionary already lists, asked to be completed rather than
+// repeated.
+function buildTranslationsInstruction(headword: string, existingTranslations: readonly string[] | null): string {
+  if (existingTranslations === null) {
+    return `Set "translations" to null: this headword's dictionary entry is not thin.`;
+  }
+  if (existingTranslations.length === 0) {
+    return (
+      `Set "translations" to an array of Spanish translations for "${headword}", most common ` +
+      `use first. An empty array if you find none.`
+    );
+  }
+  return (
+    `The dictionary already lists these Spanish translations for "${headword}": ` +
+    `${existingTranslations.join(", ")}. Set "translations" to an array of the ones it is ` +
+    `missing, most common use first, never repeating one already listed. An empty array if you ` +
+    `find none.`
+  );
+}
+
+function buildSystemPrompt(
+  headword: string,
+  wantDefinition: boolean,
+  existingTranslations: readonly string[] | null,
+): string {
   const definitionInstruction = wantDefinition
     ? `Write "definition" as one concise English sentence defining "${headword}", in a dictionary's own register.`
     : `Set "definition" to null: this headword already has one.`;
   return (
     `You extend an English-Spanish learner's dictionary. Reply with strict JSON only, shaped ` +
-    `exactly as {"definition": string|null, "example": {"en": string, "es": string}}. ` +
-    `"example.en" is one natural English sentence that uses "${headword}". "example.es" is its ` +
-    `Spanish translation. ${definitionInstruction}`
+    `exactly as {"definition": string|null, "example": {"en": string, "es": string}, ` +
+    `"translations": string[]|null}. "example.en" is one natural English sentence that uses ` +
+    `"${headword}". "example.es" is its Spanish translation. ${definitionInstruction} ` +
+    `${buildTranslationsInstruction(headword, existingTranslations)}`
   );
 }
 
 /**
- * One call, definition and example together — the shape measured against
- * twelve entries with no definition. Never throws: any failure, at any
- * step, answers `null`, so the route's own 204 is the only way a bad
- * generation reaches a reader. Endpoint and parameter names verified with a
- * real call this session: `/v1/chat/completions` takes
+ * One call, definition, example and (RL-45) translations together — the
+ * shape measured against twelve entries with no definition. The route also
+ * calls this with `wantDefinition` false and a cached example already on
+ * hand, purely for `translations`; the example it returns then is spent
+ * tokens, never written back over the cached one. Never throws: any
+ * failure, at any step, answers `null`, so the route's own 204 is the only
+ * way a bad generation reaches a reader. Endpoint and parameter names
+ * verified with a real call this session: `/v1/chat/completions` takes
  * `max_completion_tokens`, not `max_tokens`, and a top-level
  * `reasoning_effort`; driving this function below confirms both still hold.
  */
 export async function generateWordText(
   headword: string,
   wantDefinition: boolean,
+  existingTranslations: readonly string[] | null,
 ): Promise<WordText | null> {
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -59,7 +93,7 @@ export async function generateWordText(
     max_completion_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: buildSystemPrompt(headword, wantDefinition) },
+      { role: "system", content: buildSystemPrompt(headword, wantDefinition, existingTranslations) },
       { role: "user", content: `Headword: ${headword}` },
     ],
   };

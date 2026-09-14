@@ -10,6 +10,7 @@ import type { Sense, SenseGroup } from "@/lib/dictionary/index-build";
 import { useDictionary } from "@/lib/dictionary/use-dictionary";
 import type { WordAnswer } from "@/lib/dictionary/lookup";
 import { useDecoration } from "@/lib/word/use-decoration";
+import { useNetworkAnswer } from "@/lib/word/use-network-answer";
 import { deviceTranslatorState, type TranslatorState } from "@/lib/translate/availability";
 import { enableDeviceTranslator, translateOnDevice } from "@/lib/translate/on-device";
 import { translateOverNetwork } from "@/lib/translate/network";
@@ -517,6 +518,17 @@ export function SearchScreen({ initialQuery }: { initialQuery?: string }) {
     exactGroup ? needsDefinition(exactGroup) : false,
   );
 
+  // RL-44/RL-47: the network is asked only for the two shapes the dictionary
+  // itself could not close — a miss, or a hit that only came through
+  // inflection. An exact headword has its own network answer already
+  // (`useDecoration` above); `suppressNotFound` holding means a prefix is
+  // still mid-word, and asking there would charge every paused keystroke.
+  const networkWord =
+    kind.kind === "word" && wordAnswer !== null && wordAnswer.exact === null && !suppressNotFound
+      ? normaliseHeadword(wordAnswer.query)
+      : null;
+  const networkAnswer = useNetworkAnswer(networkWord);
+
   return (
     <Flex direction="column" gap="5">
       <Flex direction="column" gap="2">
@@ -534,7 +546,12 @@ export function SearchScreen({ initialQuery }: { initialQuery?: string }) {
         <Flex direction="column" gap="4">
           {!wordFound && <Suggestions items={suggestions} onPick={handleTextChange} />}
           {wordAnswer && !suppressNotFound && (
-            <SenseList answer={wordAnswer} photo={decoration.photo} generated={decoration.text} />
+            <SenseList
+              answer={wordAnswer}
+              photo={decoration.photo}
+              generated={decoration.text}
+              networkAnswer={networkAnswer}
+            />
           )}
         </Flex>
       )}

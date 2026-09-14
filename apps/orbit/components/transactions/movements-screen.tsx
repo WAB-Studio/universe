@@ -294,6 +294,15 @@ export function MovementsScreen({
 
   const editing = rows.find((row) => row.id === editingId) ?? null;
 
+  // The picker's candidates for the row under edit (RF-132): the caller's recent
+  // movements, with the row's own cause named too when the filters that built
+  // this page already hold it — no read of its own either way.
+  const editingCauseOptions = causeOptionsFor(
+    editing,
+    rows,
+    options.recentMovements,
+  );
+
   return (
     <Flex direction="column" gap="4">
       {/* The laptop's band, filter row and table, and the phone's header, chips
@@ -575,6 +584,11 @@ export function MovementsScreen({
                       badge={
                         row.recurringRuleId !== null ? t("autoBadge") : undefined
                       }
+                      caused={
+                        row.causedByTransactionId !== null
+                          ? t("causedBadge")
+                          : undefined
+                      }
                     />
                   ))}
                 </Flex>
@@ -630,6 +644,8 @@ export function MovementsScreen({
               mode="edit"
               options={options}
               movement={editing}
+              causedByTransactionId={editing.causedByTransactionId}
+              causeOptions={editingCauseOptions}
               onDone={() => setEditingId(null)}
             />
           )}
@@ -650,6 +666,22 @@ export function MovementsScreen({
       />
     </Flex>
   );
+}
+
+// The cause picker's candidates for the row under edit (RF-132): the caller's
+// recent movements, with the row's own cause named too when the current filters
+// already hold it — the picker would otherwise show the id and no words for it.
+function causeOptionsFor(
+  editing: TransactionListRow | null,
+  rows: TransactionListRow[],
+  recentMovements: TransactionListRow[],
+): TransactionListRow[] {
+  const causeId = editing?.causedByTransactionId ?? null;
+  if (causeId === null || recentMovements.some((row) => row.id === causeId)) {
+    return recentMovements;
+  }
+  const known = rows.find((row) => row.id === causeId);
+  return known ? [known, ...recentMovements] : recentMovements;
 }
 
 // A transfer names no category, so its title is the fixed kind word; an income or
@@ -719,6 +751,7 @@ function MovementCard({
   color,
   amount,
   badge,
+  caused,
 }: {
   row: TransactionListRow;
   title: string;
@@ -726,6 +759,7 @@ function MovementCard({
   color: string | null;
   amount: ReactNode;
   badge?: string;
+  caused?: string;
 }) {
   return (
     <Card asChild>
@@ -737,6 +771,7 @@ function MovementCard({
           amount={amount}
           tone={rowTone(row)}
           badge={badge}
+          caused={caused}
         />
       </LocaleLink>
     </Card>

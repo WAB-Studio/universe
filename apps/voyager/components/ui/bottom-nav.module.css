@@ -1,10 +1,13 @@
 /* docs/voyager/DESIGN.md "Viewport": a hairline above the ground, fixed under
    every screen at every width so Registro is one tap away, not two behind
-   Fuente. Mirrors page.module.css's own ground/hairline reads. */
+   Fuente. Mirrors page.module.css's own ground/hairline reads.
+   `--rl-keyboard-inset` (bottom-nav.tsx) rides the bar above an open
+   keyboard on the browser `interactiveWidget` in layout.tsx does not reach;
+   unset, it resolves to `0px` and this reads exactly as it did before. */
 .nav {
   position: fixed;
   inset-inline: 0;
-  bottom: 0;
+  bottom: var(--rl-keyboard-inset, 0px);
   z-index: 1;
   display: flex;
   background: var(--rl-ground);
