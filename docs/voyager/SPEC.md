@@ -97,7 +97,7 @@ this gets built, and no schema, table or column is "prepared for" it.
 - [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
   record holds what the dictionary could not answer and not only what it could. The same settling rule
   governs it: a word half-typed is never a row.
-- [ ] **RL-49** — A sign-in link that does not let the reader in says which of the two things went
+- [x] **RL-49** — A sign-in link that does not let the reader in says which of the two things went
   wrong. A link that is genuinely spent or expired is named as such, and the reader is sent to ask
   for another. A verification that never completed — the auth gateway did not answer — is named as
   ours, and the reader is sent to open the same link again before spending a new email on it. The
