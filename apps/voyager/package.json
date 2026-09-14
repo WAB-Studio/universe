@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --cache",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.scripts.json",
     "dict:build": "node --import tsx scripts/build-dictionary.ts",
     "check:dict": "node --import tsx scripts/check-dictionary.ts",
     "pos:build": "node --import tsx scripts/build-pos-frequency.ts",

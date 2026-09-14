@@ -1865,3 +1865,51 @@ right length still fits. Reopen this with a reason, not a hunch.
 
 **And do not read a clean gate as a clean route.** `source` carries the same exposure: `admitWord`
 checks ASCII shape, so plain lowercase English words pass whatever they spell.
+
+## Vercel installs one workspace, so a hoisted dependency is invisible until the deploy
+
+`main` shipped red from 2026-09-11 (`4cbde35`, el merge de `#168`) hasta el 13, y ningún check lo
+vio. El build de voyager en Vercel:
+
+```
+scripts/build-concreteness.ts(26,21): error TS2307: Cannot find module 'exceljs'
+scripts/build-concreteness.ts(89,18): error TS7006: Parameter 'row' implicitly has an 'any' type
+scripts/build-concreteness.ts(89,23): error TS7006: Parameter 'rowNumber' implicitly has an 'any' type
+Failed to type check.
+```
+
+Los tres errores son uno: sin el módulo, `eachRow` no tiene tipos y sus parámetros caen a `any`.
+
+**`exceljs` está declarado sólo en `apps/orbit/package.json`.** `apps/voyager/scripts/build-concreteness.ts`
+lo importa sin declararlo. npm lo iza a `node_modules/` de la raíz — no hay copia bajo ninguna app —
+así que aquí resuelve. CI también: `npm ci` en la raíz instala los dos workspaces y luego corre
+`npm run build -w apps/voyager`. **El izado tapa la dependencia no declarada en todas partes menos
+una.** Vercel instala el proyecto voyager acotado a su propio workspace, y es el único sitio que la ve.
+
+**Ningún check verde prueba que un workspace declara lo que importa.** Un import desnudo que otra app
+del monorepo declara pasa `typecheck`, `lint`, `build` y la `e2e`, y muere en el despliegue.
+
+**El arreglo, decidido por el usuario 2026-09-13:** el script sale de la superficie que tipa
+`next build` — `scripts/build-concreteness.ts` en el `exclude` de `apps/voyager/tsconfig.json` — y
+sigue tipado por `apps/voyager/tsconfig.scripts.json`, que corre bajo `npm run typecheck`, donde el
+izado resuelve. No se instaló nada: son 23 MB y 9 dependencias transitivas por un script que sólo
+puede correr en la máquina del usuario, sobre un `.xlsx` gitignorado, y cuya salida
+(`lib/word/concreteness.generated.json`) ya está commiteada.
+
+Dos cosas que muerden al escribir ese segundo config:
+
+- **`exclude` filtra `include`.** Hereda el `exclude` del padre y el fichero que acabas de excluir
+  allí desaparece también aquí. Redeclara `exclude` sin él.
+- **Los tipos de node entraban por `next-env.d.ts`.** Al estrechar `include` a un fichero se caen, y
+  tsgo acusa `Cannot find name 'node:path'` y `Cannot find name '__dirname'` — errores que parecen
+  del script y son del config. Pon `"types": ["node"]`.
+
+**Cómo se prueba, sin esperar a Vercel:** esconde la dependencia y construye.
+
+```
+mv node_modules/exceljs node_modules/exceljs.hidden
+npm run build -w apps/voyager     # la condición de Vercel, en local
+mv node_modules/exceljs.hidden node_modules/exceljs
+```
+
+Hazlo con un `trap ... EXIT` que la restaure: la raíz de `node_modules` la comparten las dos apps.
