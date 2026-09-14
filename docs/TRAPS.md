@@ -1913,3 +1913,48 @@ mv node_modules/exceljs.hidden node_modules/exceljs
 ```
 
 Hazlo con un `trap ... EXIT` que la restaure: la raíz de `node_modules` la comparten las dos apps.
+
+## El service worker guarda todas las versiones a la vez, y la pantalla mezcla dos
+
+**Medido el 2026-09-14, desde la consola del usuario en producción.**
+
+```
+TypeError: Cannot read properties of undefined (reading 'length')
+    at 3reaydxr068jt.js:6:13205
+```
+
+Esa columna exacta del chunk desplegado es `answer.correction.length`, la rama «no encontrado» de
+`components/search/sense-list.tsx:382`. `answer.correction` llegó `undefined`, y **ninguna versión
+actual puede producir eso**: `lookupWord` devuelve `correction` en sus tres returns desde RL-28
+(`46954e6`, PR #157), y se comprobó en el propio bundle desplegado
+(`{query:a,exact:i,viaInflection:o,correction:u}`).
+
+La forma sin `correction` —`{ query, exact: null, viaInflection: [] }`— es literalmente la de
+`b282b36`, la producción del 2026-09-10, anterior a RL-28. **El lector estaba corriendo dos
+versiones en la misma pantalla:** la `SenseList` de hoy con la respuesta de un worker de hace
+cuatro días.
+
+**Por qué el dispositivo todavía la tenía.** `apps/voyager/public/sw.js`:
+
+- `CACHE_NAME` se sube **a mano**, y sólo se subió una vez, el 2026-09-07 (`2b1c140`). Un despliegue
+  no cambia ni un byte de ese fichero, así que el navegador **no instala un worker nuevo**, `activate`
+  **no vuelve a correr** y no se borra nada.
+- `cacheFirst` escribe cada respuesta de `/_next/static/` y **no desaloja ninguna**. Los nombres van
+  por hash de contenido —comprobado con dos builds locales: cambiar `MAX_INFLECTED_HITS` renombró dos
+  chunks y dejó los otros byte a byte iguales—, así que **cada despliegue añade su juego entero al
+  mismo cache y ninguno se va**.
+- `navigate` cae a la concha cacheada a los 3 s, incluso con red. Una concha vieja que después pide
+  una carga RSC al servidor de hoy es la puerta por la que se mezclan las dos.
+
+**Ninguna suite lo ve, y no es un hueco de cobertura.** Las 12 specs corren **una** versión contra
+un perfil limpio. El defecto sólo existe entre dos versiones y sobre un dispositivo que ya visitó la
+anterior: no hay palabra, ni pantalla, ni viewport que lo reproduzca dentro de un build.
+
+**El arreglo:** `CACHE_NAME` a `v8` —eso solo borra el juego viejo en la primera apertura de cada
+dispositivo, porque `activate` borra todo cache que no se llame como él— y `retireOtherBuilds`, que
+lee los nombres de script de `/` como huella del build y barre `/_next/static/` en cuanto cambian.
+Un build por dispositivo, sin paso de compilación (RL-16). Lo mide `e2e/despliegue.spec.ts`;
+con la barrida desactivada la spec se pone roja en el `poll` de la línea 66.
+
+**Lo que hay que recordar:** un chunk cacheado no caduca nunca por su cuenta, y el nombre del cache
+no se entera de que desplegaste. Si el worker no cambia, el dispositivo se queda donde estaba.

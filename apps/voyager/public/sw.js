@@ -1,7 +1,22 @@
 // Hand-written, no build step (RL-16). Bump this by hand on every change: it
 // names the one cache the app is allowed to hold, and `activate` deletes any
 // other cache it finds under this origin.
-const CACHE_NAME = "reading-shell-v7";
+//
+// v7 held assets from every deploy since 2026-09-07, because a deploy changes
+// no byte of this file and so installs no new worker: nothing ever ran
+// `activate` again, and `cacheFirst` never evicts. A device that opened the
+// app on 2026-09-10 still carried that build's dictionary worker, whose
+// `lookupWord` answered `{query, exact, viaInflection}` with no `correction`
+// — the field `sense-list.tsx` has read since RL-28 (#157). Bumping the name
+// is what drops that pool; `SHELL_BUILD` below is what keeps a later deploy
+// from rebuilding it.
+const CACHE_NAME = "reading-shell-v8";
+
+// The shell the cache is allowed to hold, read off the current `/` every time
+// the network answers one. A deploy changes the hashed script names in that
+// HTML, so a mismatch is a new build and every `_next/static` entry under the
+// old one goes — the reader's next open loads one build, never two.
+const SHELL_BUILD_KEY = "/__shell-build";
 
 // How long a navigation waits for the network before it falls back to the
 // cached shell. Short enough that a dead connection does not stall the box.
@@ -66,6 +81,35 @@ function rejectAfter(ms) {
   });
 }
 
+// The hashed script names the live "/" carries. Every one of them changes on a
+// deploy, so this string is the build's own name — read off the shell itself,
+// which costs no request and needs no build step (RL-16).
+async function shellBuild(response) {
+  const html = await response.text();
+  const scripts = html.match(/\/_next\/static\/[^"']+?\.js/g);
+  return scripts === null ? null : Array.from(new Set(scripts)).sort().join(",");
+}
+
+// Everything under `/_next/static/` belongs to exactly one build, and
+// `cacheFirst` never evicts: without this, a device keeps every build it has
+// ever opened. A stale shell then draws today's chunks alongside its own, and
+// the two disagree — measured 2026-09-14, a shell from before RL-28 handed
+// today's `SenseList` an answer with no `correction` and the screen threw.
+// One build's chunks at a time, retired the moment "/" names another set.
+async function retireOtherBuilds(cache, response) {
+  const build = await shellBuild(response);
+  if (build === null) return;
+  const stored = await cache.match(SHELL_BUILD_KEY);
+  if (stored && (await stored.text()) === build) return;
+  const keys = await cache.keys();
+  await Promise.all(
+    keys
+      .filter((request) => new URL(request.url).pathname.startsWith("/_next/static/"))
+      .map((request) => cache.delete(request)),
+  );
+  await cache.put(SHELL_BUILD_KEY, new Response(build));
+}
+
 // Keyed by the request itself (its own URL), one entry per route: a hard
 // load of "/registro" must never overwrite the cached "/" shell, or an
 // offline open of "/" would serve the study instead of the search box. Also
@@ -74,12 +118,18 @@ function rejectAfter(ms) {
 // the two `NO_OVERWRITE_ROUTES`, whose live render may carry a session this
 // cache must never hold: the network still answers each of them every time,
 // the response just never gets written back.
-async function navigate(request) {
+async function navigate(request, event) {
   const cache = await caches.open(CACHE_NAME);
   const path = new URL(request.url).pathname;
   try {
     const response = await Promise.race([fetch(request), rejectAfter(NAVIGATION_TIMEOUT_MS)]);
     if (!NO_OVERWRITE_ROUTES.has(path)) cache.put(request, response.clone());
+    // "/" alone: every page names a different set of chunks, so only one
+    // route can stand for the build without reading a change into a move
+    // between screens. It is also the route a reader opens first.
+    // Held open past the response rather than awaited before it: the reader
+    // waits for the screen, never for the cache to be swept.
+    if (path === "/") event.waitUntil(retireOtherBuilds(cache, response.clone()));
     return response;
   } catch {
     const shell = await cache.match(request);
@@ -120,7 +170,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/auth/")) return;
 
   if (event.request.mode === "navigate") {
-    event.respondWith(navigate(event.request));
+    event.respondWith(navigate(event.request, event));
     return;
   }
 
