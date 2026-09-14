@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@repo/supabase-auth";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -17,9 +18,22 @@ const confirmSchema = z.object({
   type: z.enum(["magiclink", "signup", "email"]),
 });
 
-function invalidLink(request: NextRequest, headers: Headers): NextResponse {
+// RL-49: `linkTimeout` is the gateway not answering — `verifyOtp` ran but
+// never completed, so the token's fate is unknown. `linkInvalid` covers a
+// malformed query string and a rejection that did complete: both are
+// failures the design attributes to the link, not to us.
+type FailureReason = "linkTimeout" | "linkInvalid";
+
+// `isAuthRetryableFetchError` is the one thing this asks of the error: a
+// real 504 cannot be summoned on demand, and nothing here retries
+// `verifyOtp` to find out whether the token survived.
+function resolveFailureReason(error: unknown): FailureReason {
+  return isAuthRetryableFetchError(error) ? "linkTimeout" : "linkInvalid";
+}
+
+function failure(request: NextRequest, headers: Headers, reason: FailureReason): NextResponse {
   const url = new URL("/cuenta", request.url);
-  url.searchParams.set("error", "linkInvalid");
+  url.searchParams.set("error", reason);
 
   const response = NextResponse.redirect(url);
   headers.forEach((value, name) => response.headers.set(name, value));
@@ -37,7 +51,8 @@ export async function GET(request: NextRequest) {
 
   // The no-store directives `setAll` hands back have to ride on the redirect.
   const authHeaders = new Headers();
-  if (!query.success) return invalidLink(request, authHeaders);
+  // A parse failure never reached `verifyOtp`, so it is not a timeout.
+  if (!query.success) return failure(request, authHeaders, "linkInvalid");
 
   const supabase = await createSupabaseServerClient(supabaseConfig, authHeaders);
   const { data, error } = await supabase.auth.verifyOtp({
@@ -47,7 +62,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !data.user) {
     console.error("magic link verification failed", error);
-    return invalidLink(request, authHeaders);
+    return failure(request, authHeaders, resolveFailureReason(error));
   }
 
   const response = NextResponse.redirect(new URL("/cuenta", request.url));

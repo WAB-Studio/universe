@@ -8,14 +8,18 @@ import { Flex, Headword, Link, Page, Separator, TapTarget, Text } from "@/compon
 
 type InfoTab = "account" | "info";
 
+// RL-49: `app/auth/confirm/route.ts` sends a failed link here as
+// `?error=linkTimeout` (the gateway never answered) or `?error=linkInvalid`
+// (the link is genuinely spent or expired). Anything else is no failure.
+type LinkFailure = "linkTimeout" | "linkInvalid" | null;
+
 function resolveTab(raw: string | string[] | undefined): InfoTab {
   return raw === "info" ? "info" : "account";
 }
 
-// `app/auth/confirm/route.ts` sends every invalid or expired link here,
-// `?error=linkInvalid`, with no state of its own to carry the reason in.
-function isLinkInvalid(raw: string | string[] | undefined): boolean {
-  return (Array.isArray(raw) ? raw[0] : raw) === "linkInvalid";
+function resolveLinkFailure(raw: string | string[] | undefined): LinkFailure {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "linkTimeout" || value === "linkInvalid" ? value : null;
 }
 
 // Server-rendered shell alone, like `/registro`: `getReader()` reads the
@@ -35,7 +39,7 @@ export default async function CuentaPage({
   const reader = await getReader();
   const { tab: rawTab, error: rawError } = await searchParams;
   const tab = resolveTab(rawTab);
-  const linkInvalid = isLinkInvalid(rawError);
+  const linkFailure = resolveLinkFailure(rawError);
 
   return (
     <Page measure="full">
@@ -66,14 +70,18 @@ export default async function CuentaPage({
           </Link>
         </Flex>
 
-        {linkInvalid && tab === "account" && (
+        {linkFailure && tab === "account" && (
           // No red in this palette (docs/voyager/DESIGN.md "Failure"): a
-          // hairline sets the break off, full-weight ink says it. No retry
-          // button of its own — the email form right below is the retry.
+          // hairline sets the break off, the title in full-weight ink, the
+          // reason muted below it. No retry button of its own — the email
+          // form right below is the retry.
           <Flex direction="column" gap="3" align="start">
             <Separator size="4" />
             <Text size="2" weight="bold">
-              {t("errors.linkInvalid")}
+              {linkFailure === "linkTimeout" ? t("errors.linkTimeoutTitle") : t("errors.linkInvalidTitle")}
+            </Text>
+            <Text size="2" muted>
+              {linkFailure === "linkTimeout" ? t("errors.linkTimeoutBody") : t("errors.linkInvalidBody")}
             </Text>
           </Flex>
         )}

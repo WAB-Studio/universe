@@ -1,8 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { AuthApiError, AuthRetryableFetchError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 import postgres from "postgres";
 
 import messages from "../messages/es.json";
@@ -644,7 +646,8 @@ test("RL-22: a sign-in link that verifyOtp rejects lands on /cuenta with its own
   page,
 }) => {
   // No minted identity: a hash `auth.one_time_tokens` never held is exactly
-  // what `route.ts`'s `verifyOtp` call answers with an error for.
+  // what `route.ts`'s `verifyOtp` call answers with an error for — a genuine
+  // rejection, not a timeout, so it lands `error=linkInvalid` (RL-49).
   const bogusHash = randomBytes(32).toString("hex");
   const response = await page.request.get(`/auth/confirm?token_hash=${bogusHash}&type=magiclink`, {
     maxRedirects: 0,
@@ -653,5 +656,45 @@ test("RL-22: a sign-in link that verifyOtp rejects lands on /cuenta with its own
   expect(location, `redirected to ${location ?? "nowhere"}`).toContain("error=linkInvalid");
 
   await page.goto("/cuenta?error=linkInvalid");
-  await expect(page.getByText(messages.account.errors.linkInvalid)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidTitle)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidBody)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkTimeoutTitle)).toHaveCount(0);
+});
+
+// RL-49: `/cuenta?error=linkTimeout` is what `route.ts` sends for the
+// gateway-never-answered case. Reached directly, with no token at all — the
+// screen only reads the query string, so no `verifyOtp` call is in play
+// here and nothing spends a real send.
+test("RL-49: a timed-out verification names the failure as ours, not the link's", async ({ page }) => {
+  await page.goto("/cuenta?error=linkTimeout");
+  await expect(page.getByText(messages.account.errors.linkTimeoutTitle)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkTimeoutBody)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidTitle)).toHaveCount(0);
+});
+
+// `route.ts`'s own mapping is one ternary on `isAuthRetryableFetchError` —
+// proved here against fabricated auth-js error instances, not imported from
+// `route.ts` itself: that module pulls in `@repo/supabase-auth`, which
+// requires `server-only` and `next/headers` and cannot load outside a
+// running Next server, so this proves the predicate the handler branches
+// on rather than the handler. A real 504 cannot be summoned on demand, and
+// nothing here calls `verifyOtp` to try.
+test("RL-49: isAuthRetryableFetchError tells the gateway-timeout shape from a genuine rejection", () => {
+  const gatewayTimeout = new AuthRetryableFetchError("Fetch failed", 504);
+  expect(isAuthRetryableFetchError(gatewayTimeout)).toBe(true);
+
+  const spentToken = new AuthApiError("Token has expired or is invalid", 403, "otp_expired");
+  expect(isAuthRetryableFetchError(spentToken)).toBe(false);
+
+  expect(isAuthRetryableFetchError(null)).toBe(false);
+});
+
+// Requirement 3: nothing in the handler retries `verifyOtp` down either
+// path. Read from source rather than driven, because a browser run cannot
+// tell "called once" from "called once, then retried and the second
+// answer is what redirected" — the log line only proves the last call.
+test("RL-49: /auth/confirm calls verifyOtp exactly once, on every path", () => {
+  const source = readFileSync(path.join(__dirname, "../app/auth/confirm/route.ts"), "utf8");
+  const calls = source.match(/\.verifyOtp\(/g) ?? [];
+  expect(calls, `verifyOtp call sites: ${calls.length}`).toHaveLength(1);
 });
