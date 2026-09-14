@@ -683,6 +683,18 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   a dispatch. The screen a failed translation reaches from now on is `SinEntradaFrase`, and the
   screen a word the model could not answer reaches is `SinResultadoSinPista` — decided by the
   user 2026-09-11, written against RL-29 above.
+- **A new build reaches the reader on their next open, never by reloading the screen they are
+  reading.** Decided by the user 2026-09-14, after a device carrying the 2026-09-10 shell answered
+  today's `SenseList` with a dictionary that had no `correction` and the screen threw
+  (`docs/TRAPS.md`). `sw.js` retires the previous build's `/_next/static/` entries as soon as `/`
+  names a different set of scripts, and that is the whole of it: **no forced reload**. A reader mid
+  sentence is not interrupted to fix a screen that is, for them, still working. Known price, and the
+  user took it: a page already open keeps its own build until it is closed.
+- **`navigate` keeps falling back to the cached shell after 3 s, connection or no connection.**
+  Decided by the user 2026-09-14, against narrowing it to a `fetch` that actually rejects. A dead
+  connection that never fails is what the timeout was written for, and the sweep above already
+  retires what a stale shell could reach for. RL-16's promise — the app opens — outranks the
+  narrower window.
 - **The app says nothing about being offline, and `offline.notice` goes.** Decided by the user
   2026-09-09, with both readings drawn side by side on the canvas's «Cáscara» page. The string
   existed — «Estás usando la app instalada en el dispositivo, sin conexión» — and it only explains:
