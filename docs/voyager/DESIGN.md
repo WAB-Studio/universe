@@ -211,6 +211,18 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   `photo`: **zero hits across all 127**. That afternoon the photo gained five boards (canvas version
   29) and the generated definition and example gained three more (canvas version 30) — eight in all,
   named under **Settled** below. RL-36 no longer draws from nothing, and neither do RL-41 and RL-42.
+  Measured history: it stays. **Five of those eight boards lost their object on 2026-09-14**, when
+  RL-36 retired — see the next line.
+- **Six boards draw nothing the app has, retired 2026-09-14 along with RL-36**:
+  `PalabraFotoOscuroMovil`, `PalabraFotoOscuroEscritorio`, `PalabraFotoCargandoOscuroMovil`,
+  `PalabraSinFotoOscuroMovil`, `PalabraTextoAntesDeFoto` and `CuentaInformacionFotosOscuroMovil`.
+  They stay on the canvas as a record, the same way `Fuente` and `SinResultadoIAFallo` do: never
+  cite one in a dispatch. **`PalabraSinFotoOscuroMovil` is the one exception, and for a different
+  reason than the other five.** It is not a state nobody needs any more — it is the state the
+  retirement lands on. It stops being "the no-photo case" and becomes the headword's ordinary
+  screen, full stop; the description above, under **Settled**, is that screen's now, not a state of
+  its own. This slice drew no board and was missing none: the screen it arrives at was already
+  drawn and already approved — `PalabraSinFotoOscuroMovil`, canvas version 29, 2026-09-10.
 - **The two dark `BarraSidebar` boards marked «Claro» selected in the theme control**, drawn dark.
   Fixed in place 2026-09-09. A worker copying that builds a control that contradicts the page it
   sits on.
@@ -466,6 +478,12 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   what **retires RL-14**: a keystroke can now reach the network, on the very screen that used to
   touch nothing at all. `SPEC.md` opens its successors as **RL-35** (the text, unchanged) and
   **RL-36** (the photo, the new exception).
+  _Retired 2026-09-14. RL-36 is retired whole, on the user's own words: «no me interesan las
+  imágenes, habíamos decidido sacarlas y al parecer ahora hay un loading de ella». Measured against
+  production at 390px, for `sleep`: the empty 76px square appeared at 643 ms and was gone at 847 ms
+  — 204 ms of a grey square that can never fill, because production carries no `SUPABASE_STORAGE_*`
+  and no `WORD_PHOTO_DAILY_CAP`. The photo leaves the app; RL-35, the text this bullet also names,
+  is untouched._
 - **The photo goes straight to Wikimedia, with no route handler of the app's own in front of it.**
   Decided by the user 2026-09-08, asked plainly whether it mattered that a third party sees which
   word the reader is looking up: they chose to let it go direct, over building a fifth route handler
@@ -473,6 +491,8 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   an implementation detail: everywhere else in this app a lookup never leaves the device — RL-35 (the
   word's text), RNL-09 (the copy), the consent the account screen already asks for — and the photo is
   the one deliberate exception, telling Wikimedia both the word and the reader's IP address.
+  _Retired 2026-09-14, along with RL-36. Already superseded by the Openverse decision below on
+  2026-09-10; kept here as the record of what this file chose first._
 - **The photo comes from Openverse, not from Wikimedia, and no model chooses it.** Decided by the
   user 2026-09-10 after the Wikimedia path was measured and found to be the wrong question: this file
   had assumed Wikipedia as the source, and the user had never asked for that constraint — «a mí no me
@@ -495,6 +515,8 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   its author and licence, which is what feeds the per-image list in `/cuenta`.
   **The whole `gpt-5-nano` article-choosing design is dropped.** It bought 3.3 points of coverage for
   a paid call and 3.7s of latency per word.
+  _Retired 2026-09-14, along with RL-36. The measurement stays as the record of why Openverse won
+  over Wikimedia; the photo it won for no longer ships._
 
 - **The model moves to what the dictionary is actually missing: definitions and example sentences.**
   Decided by the user 2026-09-10. **RL-41** fills the 19.7% of entries that carry no definition at
@@ -535,6 +557,9 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   builds a client that touches the `reading` schema, and RNL-10 is still proved by driving it.
   Hotlinking straight to Openverse was offered as a third way and refused: it is exactly the leak the
   user closed on 2026-09-08 — the image host would see the reader's IP and the word looked up.
+  _Retired 2026-09-14, along with RL-36: no photo bytes reach this bucket any more, and its 26
+  objects are deleted. The bucket and the storage credential stay in the project, empty, untouched
+  — a decision to keep something is still a decision._
 
 - **Our own server now sees which word each reader looks up, and that is new.** On 2026-09-08 the
   user accepted that Wikimedia would see the word and the reader's IP, over building a route of the
@@ -581,6 +606,8 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   `CuentaInformacionFotosOscuroMovil` (the credits). Dark, not light, because a photograph on
   `#14130F` is a real design difference and not the token table applied — the one place in this app
   where the dark face is not derivable from the light one.
+  _All five retired 2026-09-14 along with RL-36 — see "The canvas, and which of its boards are
+  stale" above for what each draws now._
 - **The generated definition and example are drawn on the dark face too, in three boards** — canvas
   version 30, 2026-09-10: `PalabraGeneradaOscuroMovil` (resolved, the definition and example marked
   «generada»), `PalabraGenerandoOscuroMovil` (asked for, not yet back — the translation above is
@@ -610,11 +637,15 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   user took knowingly: at that size a photograph of an object reads poorly, and **it forces a desktop
   face**, because the header is the one band of this screen whose proportions really change between
   360px and a wide column. Both faces are drawn.
-- **No photo means no slot, no placeholder and no apology.** The 6.7% with nothing behind them — the
-  complement of the 93.3% that actually downloads, measured 2026-09-10 over 60 words with five
-  candidates each and a thumbnail-then-`url` fallback (`docs/TRAPS.md`) — draws exactly the screen it
-  draws today, headword flush left as though the photo had never been a possibility. A «sin imagen»
-  marker would turn the commonest case into a visible failure.
+  _Retired 2026-09-14, along with RL-36. `PalabraSinFotoOscuroMovil` — drawn to answer the other
+  case, no slot and no placeholder — is now the only case there is; see the line below._
+- **The headword draws flush left, with no slot reserved for a photo and no placeholder in its
+  place.** This used to be the 6.7% case, the complement of the 93.3% that resolved one — measured
+  2026-09-10 over 60 words with five candidates each and a thumbnail-then-`url` fallback
+  (`docs/TRAPS.md`). RL-36's retirement on 2026-09-14 makes it the only case: every word now draws
+  this screen. A «sin imagen» marker would turn the ordinary case into a visible failure, so there is
+  none. Board: `PalabraSinFotoOscuroMovil`, canvas version 29, 2026-09-10 — the board the user
+  approved, and exactly the screen this retirement lands on.
 - **Wikimedia's licence is per file, and this app hides licences in a tab today.** CC BY-SA, CC0 and
   public domain sit mixed across individual files, so every photo carries its own attribution, unlike
   the CC BY-SA 3.0 that covers the whole dictionary asset under one credit. `/cuenta` is where this
@@ -635,6 +666,9 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   grows only as they look words up. **It is a device's list, not an account's**: it lives in the
   browser's own storage, never in `reading`, and that is why `CuentaInformacion` keeps drawing it with
   no session — the same reason RL-33's credit already draws there without one.
+  _Retired 2026-09-14, along with RL-36. The per-photo credits leave `/cuenta` with the images: no
+  credit is kept for having once used a licence RL-36 alone needed. Board: `CuentaInformacionFotosOscuroMovil`
+  drew this list; it stays on the canvas as a record, never cited in a dispatch._
 
 - **A sense group carries one category label, and the group's IPA sits on that label's row.**
   Decided by the user 2026-09-09, looking at `PalabraCategoria`, over the alternative of giving every
@@ -678,6 +712,10 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
 - **No light face and no desktop face for it, and neither is missing.** This screen's decoration
   states were only ever drawn óscuro × móvil, and this one changes neither layout nor controls —
   only what has arrived by the time the reader looks.
+  _Retired 2026-09-14, along with RL-36. `PalabraTextoAntesDeFoto` drew the ordering of two
+  decorations against each other; with the photo gone there is only the text, so the ordering it
+  settled no longer applies. Its shape — reserved, silent, not spinning — survives in
+  `PalabraFormaPropiaCargando` (RL-47), which cites it below without citing this board._
 - **`SinResultadoIAFallo` is stale in all four faces.** «La IA no pudo responder» is the state the
   decision above replaces. The boards stay on the canvas as a record of what was; never cite one in
   a dispatch. The screen a failed translation reaches from now on is `SinEntradaFrase`, and the
@@ -910,8 +948,8 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
 - **Its source is CC BY-NC-SA 4.0, and that price was taken knowingly.** SUBTLEX-US with
   part-of-speech information is non-commercial and share-alike, so the derived table ships under the
   same licence and the app stays non-commercial while it does. The credit goes on `/cuenta`, in
-  `CuentaInformacion`, as one more `MetaLabel` block beside the dictionary's own FreeDict credit and
-  the per-photo credits.
+  `CuentaInformacion`, as one more `MetaLabel` block beside the dictionary's own FreeDict credit.
+  _The per-photo credits this line once sat beside are retired 2026-09-14, along with RL-36._
 - **No board was drawn for either, and neither needs one.** The order changes what a sense list
   says, never how it is drawn: `PalabraCategoria` already draws a stack of sense groups behind their
   category labels, in all four faces, and a stack reordered is the same board. The attribution is the fourth repetition of a block
@@ -948,6 +986,10 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   group happens to be a verb or adjective: `abscess`, `ace`, `aim`, `antique`, `asphalt`, `alien`.
   A rule that generalises in argument and not in measurement is worth less than the list it
   replaces.
+  _Retired 2026-09-14, along with RL-36: the gate, its closed list and its cached rows all go with
+  the photo they filtered. The Brysbaert, Warriner and Kuperman credit leaves `/cuenta` alongside the
+  Openverse ones — it was there only because RL-36 used their norms, and no credit is kept for having
+  once used them._
 
 - **A word the dictionary has no entry for is answered over the network on its own, and the reader
   asks for nothing. Decided by the user 2026-09-11**, on their own words: «esta palabra me apareció
@@ -1040,8 +1082,10 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
     offered and **not** taken: the reader chose the form's own answer in every case.
   - Boards, canvas **version 32**, page «Buscar · la palabra», dark × mobile: `PalabraFormaPropia`
     and `PalabraFormaPropiaCargando`. The second draws the lemma and its groups already painted —
-    they come from the device — with the form's own answer reserved, quiet and not spinning, the
-    shape `PalabraTextoAntesDeFoto` settled 2026-09-11.
+    they come from the device — with the form's own answer reserved, quiet and not spinning: a
+    decoration arriving after text already on screen moves nothing and never spins, the shape settled
+    2026-09-11 for the photo (`PalabraTextoAntesDeFoto`, retired 2026-09-14 with RL-36) and kept here
+    on its own terms.
   - **No board for the form the dictionary can translate on its own** (`left`): the «Por internet»
     stamp is not drawn and nothing else changes, so drawing it would repeat a decision.
   - **Stale: `Flexion`**, which draws the case RL-47 reverses — the form typed is not a headword of
@@ -1203,3 +1247,27 @@ them a case `RL-43`'s table would also get wrong:
     the app throws away, and how often the dead end fires cannot be counted from the record.
   - **No new screen, and no board.** `/registro` draws a recorded lookup; this adds rows to it, not a
     view. The user was offered a «what I could not answer» screen and did not take it.
+
+### The word photo is retired, 2026-09-14
+
+The user's own words: «no me interesan las imágenes, habíamos decidido sacarlas y al parecer ahora
+hay un loading de ella». Measured against production at 390px, for `sleep`: the empty 76px square
+appeared at 643 ms and was gone at 847 ms — 204 ms of a grey square that can never fill, because
+production carries no `SUPABASE_STORAGE_*` and no `WORD_PHOTO_DAILY_CAP`, so `/api/word/photo`
+answered `204` for every word outside the 26 rows already cached. Five decisions follow from it.
+
+1. **`RL-36` is retired whole, not hidden.** The code, the route, the table, the credits and the
+   requirement all go. `docs/voyager/SPEC.md` moves it to `### Retired` with its full text; this
+   file marks retired every decision that named the photo, dated the same day.
+2. **The bucket stays in the project, empty.** Its 26 objects are deleted; the Storage credential is
+   untouched. A decision to keep something is still a decision.
+3. **The device forgets the orphan `reading-credits` database.** It is deleted once on open, rather
+   than left behind on readers' devices.
+4. **The concreteness credits leave `/cuenta` with the Openverse ones.** Brysbaert, Warriner and
+   Kuperman were there only because `RL-36` used their norms; no credit is kept for having once used
+   them.
+5. **`RNL-03` gains nothing.** «Nothing reserved, no layout shift» is proved as a measured fact and
+   gets no code and no new sentence — opening a code for an absence over behaviour already reachable
+   buys nothing.
+
+Numbers 2 and 5 are decisions to do nothing, written down so the next session does not reopen them.

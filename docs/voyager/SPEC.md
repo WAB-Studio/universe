@@ -128,33 +128,7 @@ this gets built, and no schema, table or column is "prepared for" it.
   session: ~76 calls in 43 minutes, so 50 emptied mid-chapter. It bounds distinct new words per day, not
   words lacking a definition — the example generates for every word looked up, so a word that already
   has a definition still costs one call. A cap that bites costs nothing: the reader gets the screen
-  RL-35 already draws. `WORD_PHOTO_DAILY_CAP` is the opposite by design — left unset it means no
-  limit, which is right because Openverse is free.
-
-- [ ] **RL-36** — The answer to a concrete noun can carry an image, requested as the answer draws and
-  only with a connection. The image never blocks or delays the answer; offline, with no result, or on
-  failure, the answer draws just the same, with no gap left for it. The image comes from Openverse, a
-  search over permissively licensed photos, and the request no longer goes straight from the device to
-  a party of its own: it passes through a route handler of this app's own, the shape RL-09 already
-  uses for the sentence path, and the bytes it returns are re-served from storage this app owns. The
-  price moves with it: the image's original host stops seeing which word a reader looked up or from
-  which address, and this app's own server starts — once per word, because the result is cached for
-  every reader after the first. Each image's author, licence, licence link and source stay attached to
-  it and are credited by file in `/cuenta`, next to RL-33's own credit.
-
-  **«Concrete noun» is a test the code runs, not a phrase in this line.** Written 2026-09-11, after
-  the reader hit `grudge` and got a photograph of someone underwater. The headword must carry a noun
-  sense **and** score at least 3.0 for concreteness; a headword with no concreteness score is asked
-  for no image at all. Absence is already a screen this app draws, so a word with no photo costs the
-  reader nothing. Measured that day against the live Openverse and the built index: of 36 headwords
-  probed, concrete nouns came back relevant **12 of 12**, abstract nouns **2 of 12**, non-nouns
-  **6 of 12** — 55.6% overall. A noun-only filter buys almost nothing, because **12 of the 12
-  abstract headwords probed carry a noun sense too**; concreteness separates them cleanly, every
-  concrete probe scoring 4.58 or above and every abstract one 2.37 or below. The scores come from
-  Brysbaert, Warriner and Kuperman's 40,000-lemma norms, which cover 14,533 of the dictionary's
-  37,429 noun headwords, so at the 3.0 threshold an image is possible for **9,942 headwords — 16.9%
-  of the dictionary** rather than all of it. **That source states no licence**, unlike SUBTLEX-US in
-  RL-43; the user took it knowingly on 2026-09-11 and it is credited in `/cuenta` all the same.
+  RL-35 already draws.
 
 #### The sentence
 
@@ -279,6 +253,37 @@ this gets built, and no schema, table or column is "prepared for" it.
 
 Dead codes. The number stays burned and the tick stays as it was.
 
+- [ ] **RL-36** — The answer to a concrete noun can carry an image, requested as the answer draws and
+  only with a connection. The image never blocks or delays the answer; offline, with no result, or on
+  failure, the answer draws just the same, with no gap left for it. The image comes from Openverse, a
+  search over permissively licensed photos, and the request no longer goes straight from the device to
+  a party of its own: it passes through a route handler of this app's own, the shape RL-09 already
+  uses for the sentence path, and the bytes it returns are re-served from storage this app owns. The
+  price moves with it: the image's original host stops seeing which word a reader looked up or from
+  which address, and this app's own server starts — once per word, because the result is cached for
+  every reader after the first. Each image's author, licence, licence link and source stay attached to
+  it and are credited by file in `/cuenta`, next to RL-33's own credit.
+
+  **«Concrete noun» is a test the code runs, not a phrase in this line.** Written 2026-09-11, after
+  the reader hit `grudge` and got a photograph of someone underwater. The headword must carry a noun
+  sense **and** score at least 3.0 for concreteness; a headword with no concreteness score is asked
+  for no image at all. Absence is already a screen this app draws, so a word with no photo costs the
+  reader nothing. Measured that day against the live Openverse and the built index: of 36 headwords
+  probed, concrete nouns came back relevant **12 of 12**, abstract nouns **2 of 12**, non-nouns
+  **6 of 12** — 55.6% overall. A noun-only filter buys almost nothing, because **12 of the 12
+  abstract headwords probed carry a noun sense too**; concreteness separates them cleanly, every
+  concrete probe scoring 4.58 or above and every abstract one 2.37 or below. The scores come from
+  Brysbaert, Warriner and Kuperman's 40,000-lemma norms, which cover 14,533 of the dictionary's
+  37,429 noun headwords, so at the 3.0 threshold an image is possible for **9,942 headwords — 16.9%
+  of the dictionary** rather than all of it. **That source states no licence**, unlike SUBTLEX-US in
+  RL-43; the user took it knowingly on 2026-09-11 and it is credited in `/cuenta` all the same.
+  _Retired 2026-09-14. No successor. The user's own words: «no me interesan las imágenes, habíamos
+  decidido sacarlas y al parecer ahora hay un loading de ella». Measured against production at 390px,
+  for `sleep`: the empty 76px square appeared at 643 ms and was gone at 847 ms — **204 ms of a grey
+  square that can never fill**, because production carries no `SUPABASE_STORAGE_*` and no
+  `WORD_PHOTO_DAILY_CAP`, so `/api/word/photo` answers 204 for every word outside the 26 rows already
+  cached._
+
 - [x] **RL-40** — An inflected form resolves to its headword, and the answer names both the form
   typed and the headword reached: `went` finds `go`, `children` finds `child`, `studies` finds
   `study`. When the form typed is itself a headword, its own entry answers first and the headword it
@@ -397,9 +402,9 @@ Rules the model must always guarantee, regardless of how they are implemented:
 - The dictionary is data, never state. Nothing the reader does mutates it.
 - A headword is a group of senses, never a row. Its senses, its parts of speech,
   its pronunciations and its translations answer together or not at all.
-- A word's answer never touches the network (RL-35). Its image, its definition and its example
-  (RL-36, RL-41, RL-42) do, and only with a connection: decoration, never a condition of the answer.
-  That request goes to a route handler of this app's own, never straight to a party of its own.
+- A word's answer never touches the network (RL-35). Its definition and its example (RL-41, RL-42)
+  do, and only with a connection: decoration, never a condition of the answer. That request goes to
+  a route handler of this app's own, never straight to a party of its own.
 - The payload is installed whole or not at all. There is no partial dictionary
   a lookup could read from.
 - The interface never asserts a browser capability it has not asked for at
@@ -421,22 +426,20 @@ Principles, not recipes:
   surfaces and none of them is on that path: the sentence translation (RL-09); the copy of the
   reader's record — its sync, its wipe and the devices that hold it (RL-22, RL-25) — which runs on the
   same Supabase as `apps/orbit`, in a schema of its own, and only once the reader opened an account on
-  purpose; and the word's decoration (RL-36, RL-41, RL-42), which reaches the network only after the
-  text is already drawn and never changes or delays it. With no account, nothing of the reader's
-  record leaves the device (RNL-09); the decoration reaches the network with or without one, because
-  it is not the reader's record.
-- **A word's image, its definition and its example are the things on that path that do reach the
-  network** (RL-36, RL-41, RL-42), and each now goes through a route handler of the app's own, not
-  straight to a party of its own. Decided by the user 2026-09-10, reversing the direct-to-a-third-party
-  design this file carried until then: hiding the request behind a route of the app's own is exactly
-  what RL-09 already does for the sentence path, and it is what keeps a third party from learning
-  which word a reader is looking up. Both requests reach the network only as the answer draws and only
-  with a connection, and neither blocks or delays the text.
-- **The server surface is five route handlers and one page, and nothing else.** It becomes seven
-  when RL-36, RL-41 and RL-42 land: those three are unticked, and the two handlers they need are
-  **not written yet** — do not read the list below as though they were. Rewritten 2026-09-10, when
-  the decoration slice claimed two more and the count turned out to have been short one all along:
-  `app/api/log/clear/route.ts` existed and had never been listed.
+  purpose; and the word's decoration (RL-41, RL-42), which reaches the network only after the text is
+  already drawn and never changes or delays it. With no account, nothing of the reader's record leaves
+  the device (RNL-09); the decoration reaches the network with or without one, because it is not the
+  reader's record.
+- **A word's definition and its example are the things on that path that do reach the network**
+  (RL-41, RL-42), and each goes through a route handler of the app's own, not straight to a party of
+  its own. Decided by the user 2026-09-10: hiding the request behind a route of the app's own is
+  exactly what RL-09 already does for the sentence path, and it is what keeps a third party from
+  learning which word a reader is looking up. The request reaches the network only as the answer
+  draws and only with a connection, and never blocks or delays the text.
+- **The server surface is eight route handlers and four pages, and nothing else.** Counted
+  2026-09-14 against the files `apps/voyager/app` serves, correcting a figure stale since before this
+  slice: the text here read «five route handlers and one page … becoming seven» and had fallen three
+  handlers and three pages behind what had already shipped.
   - `app/api/translate/route.ts` — the sentence path (RL-09). Justified by two things a client
     cannot do: keep the provider's identity and key off the client, and make swapping the provider a
     one-file change.
@@ -445,17 +448,21 @@ Principles, not recipes:
     **only** a request that carries a session the reader opened on purpose; with no account they
     answer 401 without opening a connection.
   - `app/auth/confirm/route.ts` — landing the sign-in link (RL-22).
-  - `app/api/word/photo/route.ts` and `app/api/word/text/route.ts` — the word's decoration (RL-36,
-    RL-41, RL-42): an image, a definition for the entries that carry none, and an example sentence.
-    Neither answers with a session, both cache what they resolve, and both answer with nothing rather
-    than a provider's own error on any failure.
+  - `app/api/word/text/route.ts` — the word's decoration (RL-41, RL-42): a definition for the entries
+    that carry none, and an example sentence. Answers with no session, caches what it resolves, and
+    answers with nothing rather than a provider's own error on any failure.
+  - `app/api/word/unlisted/route.ts` — a word the dictionary has no entry for, answered over the
+    network on its own (RL-44, RL-47).
+  - `app/api/phrase/notes/route.ts` — the terms a translated sentence names as not obvious (RL-46).
   - `app/cuenta/page.tsx` — a server component that reads the session and queries nothing.
+  - `app/page.tsx`, `app/registro/page.tsx` and `app/registro/[palabra]/page.tsx` — the box and the
+    reader's own record.
 - **The word's text never passes through any of them.** That is the claim "no backend" actually
-  protects, and it is the one to check before adding an eighth: not how many handlers exist, but
-  whether the answer's text still touches none of them (RL-35, RNL-09). The word's decoration — its
-  image, its definition and its example (RL-36, RL-41, RL-42) — does touch two of them, but only once
-  the text already stands on its own: it arrives late, arrives only sometimes, and its absence never
-  changes or delays the text it decorates.
+  protects, and it is the one to check before adding a ninth: not how many handlers exist, but whether
+  the answer's text still touches none of them (RL-35, RNL-09). The word's decoration — its
+  definition and its example (RL-41, RL-42) — does touch one of them, but only once the text already
+  stands on its own: it arrives late, arrives only sometimes, and its absence never changes or delays
+  the text it decorates.
 - **A local MCP server (RL-27) is not part of the deployed app.** It is a
   script the reader runs on their own machine, over the file `/registro`
   exported (RL-20), never over the deployed app's network. It does not
