@@ -1,9 +1,9 @@
 import { createSupabaseServerClient } from "@repo/supabase-auth";
-import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { env } from "@/lib/env";
+import { verifyMagicLink, type FailureReason } from "@/lib/auth/verify-magic-link";
 
 const supabaseConfig = {
   url: env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,19 +17,6 @@ const confirmSchema = z.object({
   token_hash: z.string().min(1),
   type: z.enum(["magiclink", "signup", "email"]),
 });
-
-// RL-49: `linkTimeout` is the gateway not answering — `verifyOtp` ran but
-// never completed, so the token's fate is unknown. `linkInvalid` covers a
-// malformed query string and a rejection that did complete: both are
-// failures the design attributes to the link, not to us.
-type FailureReason = "linkTimeout" | "linkInvalid";
-
-// `isAuthRetryableFetchError` is the one thing this asks of the error: a
-// real 504 cannot be summoned on demand, and nothing here retries
-// `verifyOtp` to find out whether the token survived.
-function resolveFailureReason(error: unknown): FailureReason {
-  return isAuthRetryableFetchError(error) ? "linkTimeout" : "linkInvalid";
-}
 
 function failure(request: NextRequest, headers: Headers, reason: FailureReason): NextResponse {
   const url = new URL("/cuenta", request.url);
@@ -55,14 +42,14 @@ export async function GET(request: NextRequest) {
   if (!query.success) return failure(request, authHeaders, "linkInvalid");
 
   const supabase = await createSupabaseServerClient(supabaseConfig, authHeaders);
-  const { data, error } = await supabase.auth.verifyOtp({
-    type: query.data.type,
-    token_hash: query.data.token_hash,
-  });
+  const result = await verifyMagicLink(
+    (params) => supabase.auth.verifyOtp(params),
+    { type: query.data.type, token_hash: query.data.token_hash },
+  );
 
-  if (error || !data.user) {
-    console.error("magic link verification failed", error);
-    return failure(request, authHeaders, resolveFailureReason(error));
+  if (!result.ok) {
+    console.error("magic link verification failed", result.reason);
+    return failure(request, authHeaders, result.reason);
   }
 
   const response = NextResponse.redirect(new URL("/cuenta", request.url));
