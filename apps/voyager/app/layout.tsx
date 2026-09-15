@@ -5,6 +5,7 @@ import { IBM_Plex_Sans, Newsreader } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
+import { ForgetPhotoCredits } from "@/components/forget-photo-credits";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import { SyncOnHide } from "@/components/sync/sync-on-hide";
 import { AppTheme, Flex } from "@/components/ui";
@@ -80,6 +81,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </Flex>
           </AppTheme>
           <RegisterServiceWorker />
+          <ForgetPhotoCredits />
           <SyncOnHide />
         </NextIntlClientProvider>
       </body>
