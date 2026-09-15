@@ -1,15 +1,14 @@
 import { test as base, expect } from "@playwright/test";
 
 // `/api/word/text` calls the model and spends the user's own OpenAI money;
-// `/api/word/photo` writes a `reading.word_photos` row and a bucket object
-// nothing expires; `/api/word/unlisted` and `/api/phrase/notes` are the same
-// kind of paid, cached route for RL-44/RL-47 and RL-46. Every spec in this
-// suite gets all four routes intercepted and answered deterministically by
-// default — importing `test`/`expect` from here, instead of
-// `@playwright/test` directly, is what turns the interception on. A spec
-// that needs a real route says so through `allowRealWordRoute` below, with a
-// reason, in its own comment.
-type WordRouteName = "text" | "photo" | "unlisted" | "notes";
+// `/api/word/unlisted` and `/api/phrase/notes` are the same kind of paid,
+// cached route for RL-44/RL-47 and RL-46. Every spec in this suite gets all
+// three routes intercepted and answered deterministically by default —
+// importing `test`/`expect` from here, instead of `@playwright/test`
+// directly, is what turns the interception on. A spec that needs a real
+// route says so through `allowRealWordRoute` below, with a reason, in its
+// own comment.
+type WordRouteName = "text" | "unlisted" | "notes";
 
 type WordTextBody = { definition: string | null; example: { en: string; es: string } };
 
@@ -29,13 +28,11 @@ type PhraseNotesBody = { notes: Array<{ term: string; note: string }> };
 // left, as a convention rather than a guard.
 const STUB_HEADER = "x-e2e-word-stub";
 
-// Each route is a single POST with no subpath; the photo GET that serves
-// bucket bytes shares its pathname with the POST that requests it, so
-// matching on pathname alone — ignoring `?headword=...` — catches every
-// request either verb makes, with nothing left over to match separately.
+// Each route is a single POST with no subpath, so matching on pathname
+// alone — ignoring `?headword=...` — catches every request it makes, with
+// nothing left over to match separately.
 function wordRouteName(url: URL): WordRouteName | null {
   if (url.pathname === "/api/word/text") return "text";
-  if (url.pathname === "/api/word/photo") return "photo";
   if (url.pathname === "/api/word/unlisted") return "unlisted";
   if (url.pathname === "/api/phrase/notes") return "notes";
   return null;
@@ -51,7 +48,7 @@ type WordRouteState = {
 type WordRouteFixtures = {
   wordRouteState: WordRouteState;
   // Lets the rest of a test's own body reach the real route for one of the
-  // four endpoints. `reason` must say why; an empty one throws, so a caller
+  // three endpoints. `reason` must say why; an empty one throws, so a caller
   // cannot opt out silently.
   allowRealWordRoute(route: WordRouteName, reason: string): Promise<void>;
   // Replaces the default absent (204) text answer with a generated one —
