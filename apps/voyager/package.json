@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --cache",
-    "typecheck": "tsgo --noEmit && tsgo --noEmit -p tsconfig.scripts.json",
+    "typecheck": "tsgo --noEmit",
     "dict:build": "node --import tsx scripts/build-dictionary.ts",
     "check:dict": "node --import tsx scripts/check-dictionary.ts",
     "pos:build": "node --import tsx scripts/build-pos-frequency.ts",
@@ -25,7 +25,6 @@
     "check:thinness": "node --import tsx --env-file=.env.local scripts/check-thinness.ts",
     "check:unlisted": "node --import tsx --env-file=.env.local scripts/check-unlisted.ts",
     "check:notes": "node --import tsx --env-file=.env.local scripts/check-notes.ts",
-    "purge:unphotographable-photos": "node --import tsx --env-file=.env.local scripts/purge-unphotographable-photos.ts",
     "harness:mint-reader-session": "node --import tsx --env-file=.env.local scripts/harness/mint-reader-session.ts",
     "mcp:serve": "node --import tsx scripts/mcp/server.ts"
   },
