@@ -97,6 +97,13 @@ this gets built, and no schema, table or column is "prepared for" it.
 - [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
   record holds what the dictionary could not answer and not only what it could. The same settling rule
   governs it: a word half-typed is never a row.
+- [x] **RL-49** — A sign-in link that does not let the reader in says which of the two things went
+  wrong. A link that is genuinely spent or expired is named as such, and the reader is sent to ask
+  for another. A verification that never completed — the auth gateway did not answer — is named as
+  ours, and the reader is sent to open the same link again before spending a new email on it. The
+  screen never calls a link invalid on the strength of a timeout, and nothing verifies again on the
+  reader's behalf: `verifyOtp` is not idempotent and a timeout says nothing about whether the token
+  was spent.
 - [ ] **RL-07** — Autocomplete appears only while the string is being treated as a word. A sentence never raises it.
 - [x] **RL-26** — A headword's answer can be heard. The device speaks it with the voice the browser
   already carries, so a headword with no IPA is spoken exactly like one that has it. Decided by the
@@ -129,6 +136,15 @@ this gets built, and no schema, table or column is "prepared for" it.
   words lacking a definition — the example generates for every word looked up, so a word that already
   has a definition still costs one call. A cap that bites costs nothing: the reader gets the screen
   RL-35 already draws.
+
+  **The four numbers in production, kept by the user 2026-09-19.** `WORD_TEXT_DAILY_CALL_CAP` 500 is
+  the whole day's budget: the three model routes — this one, RL-44's unlisted word and RL-46's phrase
+  notes — all spend from the same `reading.model_spend` row, whichever claims it first.
+  `PHRASE_NOTES_DAILY_CALL_CAP` 200 is a second, lower ceiling the notes route alone stops at.
+  Per device and per day, `WORD_UNLISTED_DAILY_CLIENT_CAP` is 100 and `PHRASE_NOTES_DAILY_CLIENT_CAP`
+  is 50, **both read against one shared `reading.client_spend` row**: a reader who spends 50 calls on
+  unlisted words gets no phrase notes that day, having asked for none. That is the accepted price of
+  one counter per caller.
 
 #### The sentence
 

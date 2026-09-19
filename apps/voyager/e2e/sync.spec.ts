@@ -3,10 +3,12 @@ import path from "node:path";
 
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
+import { AuthApiError, AuthRetryableFetchError } from "@supabase/supabase-js";
 import postgres from "postgres";
 
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
+import { verifyMagicLink } from "../lib/auth/verify-magic-link";
 import { DATABASE_VERSION } from "../lib/log/record";
 import type { LookupRecord, SyncState } from "../lib/log/types";
 import { closeRun, openRun } from "@repo/harness-registry";
@@ -644,7 +646,8 @@ test("RL-22: a sign-in link that verifyOtp rejects lands on /cuenta with its own
   page,
 }) => {
   // No minted identity: a hash `auth.one_time_tokens` never held is exactly
-  // what `route.ts`'s `verifyOtp` call answers with an error for.
+  // what `route.ts`'s `verifyOtp` call answers with an error for — a genuine
+  // rejection, not a timeout, so it lands `error=linkInvalid` (RL-49).
   const bogusHash = randomBytes(32).toString("hex");
   const response = await page.request.get(`/auth/confirm?token_hash=${bogusHash}&type=magiclink`, {
     maxRedirects: 0,
@@ -653,5 +656,53 @@ test("RL-22: a sign-in link that verifyOtp rejects lands on /cuenta with its own
   expect(location, `redirected to ${location ?? "nowhere"}`).toContain("error=linkInvalid");
 
   await page.goto("/cuenta?error=linkInvalid");
-  await expect(page.getByText(messages.account.errors.linkInvalid)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidTitle)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidBody)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkTimeoutTitle)).toHaveCount(0);
+});
+
+// RL-49: `/cuenta?error=linkTimeout` is what `route.ts` sends for the
+// gateway-never-answered case. Reached directly, with no token at all — the
+// screen only reads the query string, so no `verifyOtp` call is in play
+// here and nothing spends a real send.
+test("RL-49: a timed-out verification names the failure as ours, not the link's", async ({ page }) => {
+  await page.goto("/cuenta?error=linkTimeout");
+  await expect(page.getByText(messages.account.errors.linkTimeoutTitle)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkTimeoutBody)).toBeVisible();
+  await expect(page.getByText(messages.account.errors.linkInvalidTitle)).toHaveCount(0);
+});
+
+// `route.ts` wires the real Supabase client's `verifyOtp` into
+// `verifyMagicLink` and calls it once; `verifyMagicLink` itself is imported
+// here without pulling in `@repo/supabase-auth` (`server-only`,
+// `next/headers`), which is what lets this count real invocations instead
+// of grepping source shape — a grep still reads "one call site" over a
+// function that calls it twice on retry, which is exactly the regression
+// this guards against. A real 504 cannot be summoned on demand, so a
+// counting spy stands in for the gateway on each of the three answers
+// `verifyOtp` can give.
+test("RL-49: verifyMagicLink calls verifyOtp exactly once and names the reason, for a timeout, a rejection and success", async () => {
+  let timeoutCalls = 0;
+  const timeout = await verifyMagicLink(async () => {
+    timeoutCalls += 1;
+    return { data: { user: null }, error: new AuthRetryableFetchError("Fetch failed", 504) };
+  }, undefined);
+  expect(timeoutCalls, "verifyOtp calls for a gateway timeout").toBe(1);
+  expect(timeout).toEqual({ ok: false, reason: "linkTimeout" });
+
+  let rejectionCalls = 0;
+  const rejection = await verifyMagicLink(async () => {
+    rejectionCalls += 1;
+    return { data: { user: null }, error: new AuthApiError("Token has expired or is invalid", 403, "otp_expired") };
+  }, undefined);
+  expect(rejectionCalls, "verifyOtp calls for a spent token").toBe(1);
+  expect(rejection).toEqual({ ok: false, reason: "linkInvalid" });
+
+  let successCalls = 0;
+  const success = await verifyMagicLink(async () => {
+    successCalls += 1;
+    return { data: { user: { id: "reader-1" } }, error: null };
+  }, undefined);
+  expect(successCalls, "verifyOtp calls for a successful verification").toBe(1);
+  expect(success).toEqual({ ok: true, user: { id: "reader-1" } });
 });
