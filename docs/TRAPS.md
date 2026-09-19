@@ -1976,3 +1976,42 @@ con la barrida desactivada la spec se pone roja en el `poll` de la línea 66.
 
 **Lo que hay que recordar:** un chunk cacheado no caduca nunca por su cuenta, y el nombre del cache
 no se entera de que desplegaste. Si el worker no cambia, el dispositivo se queda donde estaba.
+
+## Un migrador corrido desde la rama equivocada no aplica nada y dice que sí
+
+Medido el 2026-09-19, cerrando RL-36. `npm run db:migrate -w apps/voyager` terminó en
+`migrations applied successfully!` y **la base no cambió**: `to_regclass('reading.word_photos')`
+seguía devolviendo la tabla y `model_spend` conservaba su columna `photos`.
+
+La causa es que el comando se corrió desde el checkout principal, que estaba en una rama anterior a
+la migración. En ese árbol no existían `db/migrations/0003_small_daredevil.sql` ni su entrada en
+`meta/_journal.json`, así que drizzle aplicó lo que veía — nada — y reportó éxito con toda razón.
+**El migrador lee el árbol, no la rama que crees tener.**
+
+El éxito de `db:migrate` no es una medida. Lee la base después:
+
+```
+select to_regclass('reading.word_photos');
+select column_name from information_schema.columns
+where table_schema = 'reading' and table_name = 'model_spend';
+```
+
+Corrido desde el carril que sí tenía el fichero, la migración cayó y esas dos consultas cambiaron.
+Con una base compartida por todos los carriles y por producción, el fallo silencioso va en la
+dirección amable — no aplicar — pero la inversa es la misma trampa: un carril viejo puede aplicar
+una migración que otra rama ya renumeró.
+
+## `.next/types/validator.ts` sobrevive a la ruta que describe
+
+Medido tres veces el 2026-09-19, en tres árboles distintos, tras retirar `/api/word/photo`:
+
+```
+.next/types/validator.ts(134,39): error TS2307: Cannot find module '../../app/api/word/photo/route.js'
+```
+
+`tsgo` lee los tipos generados por una corrida anterior a que la ruta muriera. **No es una
+regresión y no hay nada que arreglar en el código.** `rm -rf .next && npx next typegen`, o
+cualquier `next build`, lo borra. `.next` no está versionado, así que no deja rastro en el árbol.
+
+Cuesta minutos cada vez que alguien lo lee como un rojo suyo: lo tropezaron el worker del módulo 8,
+su validador y el rebase de RL-49.
