@@ -19,6 +19,11 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
 - Run the `orchestrator` skill to develop. It dispatches `planner`, `worker` and `validator`.
 - Dispatch the `critic` before calling a slice done. It drives the app and judges the product;
   `validator` judges one assignment and `auditor` judges the code. Neither ever says the app is thin.
+- Dispatch the `tester` when a module's proof matters more than its code. It writes the tests from
+  the contract, never from the implementation, and shows every one of them red under a named mutation.
+- Dispatch the `mutator` before closing a slice, once the validator is green. It breaks the lines the
+  branch itself changed and reports what no suite noticed. A survivor is a regression that ships in
+  silence.
 - Put the critic's questions to the user, in their own words. Never answer one for them.
 - Never close a slice on a report of greens alone. A slice with no criticism in it was not reviewed.
 - Keep plans in `private/`.
