@@ -38,7 +38,6 @@
     "preparingReadOnly": "Instalando el diccionario en el dispositivo"
   },
   "word": {
-    "viaInflection": "\"{surface}\" es una forma de \"{lemma}\"",
     "viaInflectionWithEntry": "\"{surface}\" también es una forma de \"{lemma}\"",
     "formOf": "\"{surface}\" es una forma de \"{lemma}\"",
     "translations": "Traducciones",
