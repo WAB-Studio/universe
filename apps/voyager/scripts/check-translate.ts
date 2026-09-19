@@ -169,6 +169,42 @@ async function main() {
     JSON.stringify(bestScoring),
   );
 
+  // A non-200 `responseStatus` is refused **by that check alone**. The quota
+  // case above passes this line too, but it also carries the warning prefix,
+  // so it dies in `isUsableTranslation` and says nothing about the guard.
+  // Written 2026-09-19 after a mutant deleted the `responseStatus` guard
+  // whole and this suite stayed green: any non-200 reply whose text merely
+  // reads like a translation would have reached the reader as one.
+  stubFetch({
+    responseData: { translatedText: "Una frase que parece una traducción" },
+    responseStatus: "429",
+    matches: [{ translation: "Otra que también lo parece", match: 0.99 }],
+  });
+  const plainNon200 = await postTranslate("something to translate");
+  assert(
+    "a non-200 responseStatus is refused even when its text looks like a translation",
+    plainNon200.status === 502,
+    JSON.stringify(plainNon200),
+  );
+
+  // Two usable matches at the same score: the first one wins. The tie is the
+  // only part of the ranking the suite did not exercise, so `>` could become
+  // `>=` unnoticed and the comment above it stop being true.
+  stubFetch({
+    responseData: { translatedText: "" },
+    responseStatus: 200,
+    matches: [
+      { translation: "La primera de dos iguales", match: 0.9 },
+      { translation: "La segunda de dos iguales", match: 0.9 },
+    ],
+  });
+  const tie = await postTranslate("something to translate");
+  assert(
+    "a tie in score keeps the first usable match, not the last",
+    tie.status === 200 && (tie.body as { text: string }).text === "La primera de dos iguales",
+    JSON.stringify(tie),
+  );
+
   process.exit(failed ? 1 : 0);
 }
 
