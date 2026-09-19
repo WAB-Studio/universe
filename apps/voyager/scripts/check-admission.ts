@@ -5,10 +5,9 @@
  * `client-budget.ts` starts with `import "server-only"`, which throws under
  * plain Node (no such package outside a Next build), so this script
  * reimplements its two functions' bodies directly rather than re-importing
- * them — the same reason `check-decoration.ts`, `check-sync.ts` and
- * `purge-unphotographable-photos.ts` open their own `postgres` client
- * instead of importing `db/client.ts`. `admit.ts` carries no such import and
- * is imported for real below.
+ * them — the same reason `check-decoration.ts` and `check-sync.ts` open
+ * their own `postgres` client instead of importing `db/client.ts`.
+ * `admit.ts` carries no such import and is imported for real below.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";

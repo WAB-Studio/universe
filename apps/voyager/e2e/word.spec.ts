@@ -4,6 +4,12 @@ import type { Page } from "@playwright/test";
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
 import type { WorkerRequest, WorkerResponse } from "../lib/dictionary/worker-protocol";
+import { PHRASE_DEBOUNCE_MS } from "../lib/query/settle";
+
+// CI's `voyager-e2e` job and a lane started with `VOYAGER_BASE_URL` both
+// need this test's own route interception scoped to the app's real origin,
+// never to any host a stray absolute URL might carry.
+const baseURL = process.env.VOYAGER_BASE_URL ?? "http://localhost:3100";
 
 // Chromium's built-in `Translator` hangs `availability()` forever
 // (docs/TRAPS.md); the mount effect must never reach it in this suite.
@@ -323,8 +329,7 @@ test("umbrella draws no dictionary definition, and the generated one arrives mar
   stubWordText,
 }) => {
   await deleteTranslator(page);
-  // Photo stays absent — this test is about the text block alone — while
-  // the text route answers as if the model had generated one, still fully
+  // The text route answers as if the model had generated one, still fully
   // mocked.
   await stubWordText({
     definition: "A device used for protection against rain, consisting of a folding frame.",
@@ -580,4 +585,73 @@ test("RL-40: a word's own entry answers first, and a plausible inflection is off
   await expect(page.getByText("también es una forma de", { exact: false })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "b", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "be", exact: true })).toHaveCount(0);
+});
+
+// Long enough that "cat"'s answer, sent second, still lands well inside it
+// — long enough to still be in flight when "cat" replaces "dog" below.
+const SLOW_ANSWER_DELAY_MS = 3000;
+
+const DOG_TEXT = {
+  definition: "Definición de dog: nunca debe aparecer bajo cat.",
+  example: { en: "The dog barks loudly.", es: "El perro ladra fuerte." },
+};
+const CAT_TEXT = {
+  definition: "Definición de cat.",
+  example: { en: "The cat sleeps all day.", es: "El gato duerme todo el día." },
+};
+
+test("a headword replaced mid-flight never lands its text on the word that replaced it", async ({
+  page,
+  allowRealWordRoute,
+}) => {
+  await deleteTranslator(page);
+  // Headword-specific bodies and delays, wired by this test alone — the
+  // default stub answers the same body for every headword, which cannot
+  // tell "dog's answer" from "cat's answer" apart.
+  await allowRealWordRoute("text", "this spec answers per headword itself, below, never the real route");
+
+  await page.route(`${baseURL}/api/word/text`, async (route) => {
+    const body = route.request().postDataJSON() as { headword: string };
+    const isDog = body.headword === "dog";
+    if (isDog) {
+      // Long enough to still be in flight when "cat" replaces it below.
+      await new Promise((resolve) => setTimeout(resolve, SLOW_ANSWER_DELAY_MS));
+    }
+    try {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(isDog ? DOG_TEXT : CAT_TEXT),
+      });
+    } catch {
+      // `dog`'s own AbortController already cancelled the fetch client-side
+      // by the time this fires; there is nothing left to answer.
+    }
+  });
+
+  const assetResponse = page.waitForResponse(
+    (response) => response.url().includes(manifest.asset.path) && response.ok(),
+  );
+  await page.goto("/");
+  await assetResponse;
+  await page.waitForTimeout(1000);
+
+  const searchBox = page.getByRole("textbox", { name: messages.search.label });
+  await searchBox.fill("dog");
+  await expect(page.getByRole("heading", { name: "dog", exact: true })).toBeVisible({ timeout: 5000 });
+
+  // Past the debounce, so `dog`'s own fetch has actually been sent — the
+  // abort this proves is one of an in-flight request, not one still only
+  // queued behind the timer.
+  await page.waitForTimeout(PHRASE_DEBOUNCE_MS + 300);
+
+  await searchBox.fill("cat");
+  await expect(page.getByRole("heading", { name: "cat", exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(CAT_TEXT.example.en)).toBeVisible({ timeout: PHRASE_DEBOUNCE_MS + 2000 });
+
+  // Long enough that `dog`'s slow answer, had it not been abandoned, would
+  // already have landed.
+  await page.waitForTimeout(SLOW_ANSWER_DELAY_MS);
+  await expect(page.getByText(CAT_TEXT.example.en)).toBeVisible();
+  await expect(page.getByText(DOG_TEXT.example.en)).toHaveCount(0);
 });

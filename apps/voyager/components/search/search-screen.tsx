@@ -548,8 +548,7 @@ export function SearchScreen({ initialQuery }: { initialQuery?: string }) {
           {wordAnswer && !suppressNotFound && (
             <SenseList
               answer={wordAnswer}
-              photo={decoration.photo}
-              generated={decoration.text}
+              generated={decoration}
               networkAnswer={networkAnswer}
             />
           )}

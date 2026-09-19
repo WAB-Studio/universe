@@ -53,7 +53,6 @@
     "networkFailed": "No se pudo responder por internet",
     "example": "Ejemplo",
     "exampleTranslation": "Traducción",
-    "photoAlt": "Foto de «{headword}»",
     "suggestions": "Sugerencias",
     "listen": "Escuchar «{headword}»",
     "pos": {
@@ -170,21 +169,6 @@
       "licenceCredit": "Obra derivada de DBnary, bajo <cc>CC BY-SA 3.0</cc>. Esta app la distribuye bajo la misma licencia.",
       "frequencyLabel": "Orden de las acepciones",
       "frequencyCredit": "El orden en que se muestran las acepciones de una palabra viene de <source>SUBTLEX-US con información gramatical</source>, bajo <cc>CC BY-NC-SA 4.0</cc>. Esta app distribuye esa tabla bajo la misma licencia, sin uso comercial.",
-      "photosLabel": "Fotos",
-      "photosIntro": "Cada foto que has visto, con su autor y su licencia.",
-      "photosEmpty": "Todavía no has resuelto ninguna foto.",
-      "photoLink": "la foto {headword}",
-      "photoAttribution": "{author} · <licenceLink>{licence}</licenceLink>",
-      "photoAttributionNoAuthor": "<licenceLink>{licence}</licenceLink>",
-      "photoLicence": {
-        "by": "CC BY",
-        "by-sa": "CC BY-SA",
-        "cc0": "CC0",
-        "pdm": "Marca de dominio público"
-      },
-      "concretenessLabel": "Concreción de las fotos",
-      "concretenessName": "Concreteness ratings for 40 thousand generally known English word lemmas",
-      "concretenessCredit": "Marc Brysbaert, Amy Beth Warriner y Victor Kuperman (2014), Behavior Research Methods, 46, 904–911. Esta fuente no declara licencia.",
       "appLabel": "La app",
       "appVersion": "Diccionario de lectura · versión {version}"
     },
