@@ -151,7 +151,14 @@ test("10,003 rows export whole, and the file round-trips through JSON exactly", 
   await seedRows(page, 10_003);
   await page.reload();
 
-  await expect(page.getByText(t("log.study.header", { lookups: 10_003, words: 10_003 }))).toBeVisible();
+  // What this waits for is a fold over 10,003 rows, and `expect`'s own default
+  // is 5s while the test above budgets 60s for exactly this workload. With two
+  // workers on a two-core runner the fold lands outside the 5s: measured in CI
+  // 2026-09-19, `element(s) not found` with the screen already drawn and the
+  // heading in place. The number below matches the work, not the patience.
+  await expect(page.getByText(t("log.study.header", { lookups: 10_003, words: 10_003 }))).toBeVisible({
+    timeout: 30_000,
+  });
 
   const rawRows = await readRawRows(page);
   expect(rawRows).toHaveLength(10_003);

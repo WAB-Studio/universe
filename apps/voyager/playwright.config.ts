@@ -11,7 +11,13 @@ export default defineConfig({
   testDir: "./e2e",
   // Gitignored, so a run leaves the tree clean.
   outputDir: "./private/playwright-results",
-  workers: 1,
+  // Two, never more: the runner this suite really runs on is a private
+  // repository's `ubuntu-latest`, which is 2 vCPU. Workers above the core
+  // count buy memory pressure, not speed. Measured 2026-09-19 over the whole
+  // suite: 370s serial against 182s, 194s and 191s across three parallel
+  // runs, all 175 green, none flaky. Four specs reach Supabase auth and can
+  // now land in the same window; `retries: 0` below is what would say so.
+  workers: 2,
   // A retry would hide a flake behind a green run, which is what this layer
   // exists to find.
   retries: 0,
