@@ -12,10 +12,10 @@ export type NetworkAnswerState =
   | { kind: "absent" };
 
 // The word this answer is for. Nothing in `state` carries it — `resolved`
-// answers a word without naming it back — so the caller passes it, the same
-// door `WordPhoto` opens for its own alt text. Kept off every visible line
-// (no key here interpolates it) and read only as a scoping key for the
-// block, the same role `sense-list.tsx` gives `surface` in a React key.
+// answers a word without naming it back — so the caller passes it. Kept off
+// every visible line (no key here interpolates it) and read only as a
+// scoping key for the block, the same role `sense-list.tsx` gives `surface`
+// in a React key.
 export function NetworkAnswer({ state, surface }: { state: NetworkAnswerState; surface: string }) {
   const t = useTranslations("word");
 

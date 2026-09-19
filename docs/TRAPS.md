@@ -1587,6 +1587,10 @@ base branch whenever a page gains a call that reads cookies or headers.
 
 ## Openverse y el bucket de Supabase: tres cosas que muerden al escribir el módulo
 
+**Describe una ruta retirada.** `RL-36`, la foto de la palabra, se retiró entero el 2026-09-14
+(`docs/voyager/SPEC.md` §1 «Retired»); lo de abajo queda escrito porque costó un día, no porque siga
+en pie.
+
 Medido 2026-09-10 conduciendo la cadena entera —buscar, bajar, subir— antes de despachar nada.
 Las tres salieron en las primeras cinco palabras.
 
@@ -1709,6 +1713,10 @@ arreglo sólo hace que *recuperar* dos veces la misma fila cueste una lectura de
 fila de más.
 
 ## `foto.spec.ts` no puede pedirle píxeles al bucket en CI, y no debe pedirle credenciales tampoco
+
+**Describe una ruta retirada.** `RL-36`, la foto de la palabra, se retiró entero el 2026-09-14
+(`docs/voyager/SPEC.md` §1 «Retired»); `foto.spec.ts` y `/api/word/photo` salen del código en el
+módulo que lo construye, y lo de abajo queda escrito porque costó un día, no porque siga en pie.
 
 Medido 2026-09-11. `.github/workflows/ci.yml`'s `voyager-e2e` no define ninguna de las cinco
 `SUPABASE_STORAGE_*` que `isStorageConfigured()` exige — a propósito: dárselas a cada corrida de CI
