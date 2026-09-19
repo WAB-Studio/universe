@@ -8,6 +8,11 @@
  * or a quota warning already were. Every prior branch is re-run too, so
  * this file stands as the route's only regression cover, not only the new
  * line's.
+ *
+ * Also proves RL-49: an empty `translatedText` alongside a usable `matches`
+ * entry is answered from that entry, not refused. The stub for that case is
+ * the real reply measured with `curl` against `api.mymemory.translated.net`
+ * for "the cat sat on the mat", trimmed to the fields this route reads.
  */
 import { POST } from "../app/api/translate/route";
 
@@ -18,7 +23,13 @@ function assert(label: string, ok: boolean, detail: string): void {
   if (!ok) failed = true;
 }
 
-type MyMemoryStub = { responseData?: { translatedText?: string }; responseStatus?: number | string };
+type MyMemoryMatchStub = { translation?: string; quality?: string; match?: number };
+
+type MyMemoryStub = {
+  responseData?: { translatedText?: string };
+  responseStatus?: number | string;
+  matches?: MyMemoryMatchStub[];
+};
 
 function stubFetch(payload: MyMemoryStub, ok = true): void {
   globalThis.fetch = (async () =>
@@ -83,6 +94,80 @@ async function main() {
   stubFetch({ responseData: { translatedText: "MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS" }, responseStatus: "160" });
   const quota = await postTranslate("something to translate");
   assert("a quota warning is still refused", quota.status === 502, JSON.stringify(quota));
+
+  // RL-49, the defect as measured: MyMemory's best-scoring match for "the
+  // cat sat on the mat" carries `translatedText: ""`, but `matches` holds a
+  // second entry that actually answers the sentence. This is that exact
+  // reply, trimmed to the fields the route reads.
+  stubFetch({
+    responseData: { translatedText: "" },
+    responseStatus: 200,
+    matches: [
+      { translation: "", quality: "100", match: 0.99 },
+      { translation: "El gato se sentó en la alfombra", quality: "74", match: 0.98 },
+      { translation: "El gato se sentó en la alfombra.", quality: "74", match: 0.97 },
+    ],
+  });
+  const catOnTheMat = await postTranslate("the cat sat on the mat");
+  assert(
+    "an empty main translation falls back to a usable match",
+    catOnTheMat.status === 200 &&
+      (catOnTheMat.body as { text: string }).text === "El gato se sentó en la alfombra",
+    JSON.stringify(catOnTheMat),
+  );
+
+  // No usable alternative anywhere in `matches` — the route still refuses,
+  // exactly as it did before this fix.
+  stubFetch({
+    responseData: { translatedText: "" },
+    responseStatus: 200,
+    matches: [
+      { translation: "", match: 0.9 },
+      { translation: "the cat sat on the mat", match: 0.5 },
+    ],
+  });
+  const noAlternative = await postTranslate("the cat sat on the mat");
+  assert(
+    "an empty main translation with no usable match is still refused",
+    noAlternative.status === 502,
+    JSON.stringify(noAlternative),
+  );
+
+  // A quota warning landing inside a match (never seen live, only guarded
+  // against) is skipped by the same filter the main translation answers to,
+  // and the fallback keeps looking past it.
+  stubFetch({
+    responseData: { translatedText: "" },
+    responseStatus: 200,
+    matches: [
+      { translation: "MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS", match: 0.99 },
+      { translation: "Traducción alterna válida", match: 0.5 },
+    ],
+  });
+  const warningInMatch = await postTranslate("something to translate");
+  assert(
+    "a warning string inside matches is skipped, not handed to the reader",
+    warningInMatch.status === 200 &&
+      (warningInMatch.body as { text: string }).text === "Traducción alterna válida",
+    JSON.stringify(warningInMatch),
+  );
+
+  // "Best" is the highest-scoring usable match, not the first one in the
+  // array — the fallback must not lean on MyMemory's own ordering.
+  stubFetch({
+    responseData: { translatedText: "" },
+    responseStatus: 200,
+    matches: [
+      { translation: "Peor opción", match: 0.4 },
+      { translation: "Mejor opción", match: 0.9 },
+    ],
+  });
+  const bestScoring = await postTranslate("something to translate");
+  assert(
+    "the fallback picks the highest-scoring usable match, not the first one",
+    bestScoring.status === 200 && (bestScoring.body as { text: string }).text === "Mejor opción",
+    JSON.stringify(bestScoring),
+  );
 
   process.exit(failed ? 1 : 0);
 }
