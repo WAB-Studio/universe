@@ -13,6 +13,8 @@
     "typecheck": "tsgo --noEmit",
     "dict:build": "node --import tsx scripts/build-dictionary.ts",
     "check:dict": "node --import tsx scripts/check-dictionary.ts",
+    "check:unit": "node --experimental-test-module-mocks --import tsx --test \"lib/**/*.test.ts\"",
+    "check:mutants": "node --import tsx scripts/check-mutants.ts",
     "pos:build": "node --import tsx scripts/build-pos-frequency.ts",
     "check:e2e": "node ../../node_modules/@playwright/test/cli.js test",
     "db:generate": "drizzle-kit generate",
