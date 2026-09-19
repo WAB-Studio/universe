@@ -137,6 +137,15 @@ this gets built, and no schema, table or column is "prepared for" it.
   has a definition still costs one call. A cap that bites costs nothing: the reader gets the screen
   RL-35 already draws.
 
+  **The four numbers in production, kept by the user 2026-09-19.** `WORD_TEXT_DAILY_CALL_CAP` 500 is
+  the whole day's budget: the three model routes — this one, RL-44's unlisted word and RL-46's phrase
+  notes — all spend from the same `reading.model_spend` row, whichever claims it first.
+  `PHRASE_NOTES_DAILY_CALL_CAP` 200 is a second, lower ceiling the notes route alone stops at.
+  Per device and per day, `WORD_UNLISTED_DAILY_CLIENT_CAP` is 100 and `PHRASE_NOTES_DAILY_CLIENT_CAP`
+  is 50, **both read against one shared `reading.client_spend` row**: a reader who spends 50 calls on
+  unlisted words gets no phrase notes that day, having asked for none. That is the accepted price of
+  one counter per caller.
+
 #### The sentence
 
 - [ ] **RL-08** — A sentence is translated by the device's own translator when the browser offers one and it is ready. Whether it does is asked of the browser at runtime, on every open, and never inferred from the browser's name or version.
