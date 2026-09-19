@@ -89,9 +89,7 @@ test("a second open of the same device issues no second delete request", async (
     const nativeDelete = indexedDB.deleteDatabase.bind(indexedDB);
     indexedDB.deleteDatabase = ((deletedName: string) => {
       if (deletedName === name) {
-        // eslint-disable-next-line no-restricted-globals -- test-only counter, never app code
         const count = Number(localStorage.getItem("e2e-delete-calls") ?? "0");
-        // eslint-disable-next-line no-restricted-globals -- test-only counter, never app code
         localStorage.setItem("e2e-delete-calls", String(count + 1));
       }
       return nativeDelete(deletedName);
@@ -101,7 +99,6 @@ test("a second open of the same device issues no second delete request", async (
   const firstAsset = page.waitForResponse((response) => response.url().includes(manifest.asset.path) && response.ok());
   await page.goto("/");
   await firstAsset;
-  // eslint-disable-next-line no-restricted-globals -- test-only counter, never app code
   await expect.poll(() => page.evaluate(() => localStorage.getItem("reading-credits-forgotten"))).toBe("1");
 
   const secondAsset = page.waitForResponse((response) => response.url().includes(manifest.asset.path) && response.ok());
@@ -109,7 +106,6 @@ test("a second open of the same device issues no second delete request", async (
   await secondAsset;
   await page.waitForTimeout(300);
 
-  // eslint-disable-next-line no-restricted-globals -- test-only counter, never app code
   const deleteCalls = await page.evaluate(() => Number(localStorage.getItem("e2e-delete-calls") ?? "0"));
   expect(deleteCalls).toBe(1);
 });

@@ -38,6 +38,12 @@ const eslintConfig = defineConfig([
     files: ["lib/**"],
     rules: { "no-restricted-globals": "off" },
   },
+  // A spec asserts what the device really holds, so it reads the store the
+  // browser exposes rather than the one the app imports.
+  {
+    files: ["e2e/**"],
+    rules: { "no-restricted-globals": "off" },
+  },
 ]);
 
 export default eslintConfig;
