@@ -1297,3 +1297,21 @@ answered `204` for every word outside the 26 rows already cached. Five decisions
    buys nothing.
 
 Numbers 2 and 5 are decisions to do nothing, written down so the next session does not reopen them.
+
+### The model judges what the provider's memory returns, 2026-09-20
+
+`RL-50`. The user was shown three mechanisms and took this one. What ruled the other two out is in
+`docs/voyager/SPEC.md` under the code; what belongs here is the shape it leaves on the screen.
+
+**Two boards do not exist, and this slice cannot be dispatched without them.**
+
+1. **Every candidate refused.** The reader typed a phrase, the provider answered, and nothing
+   survived the judgement. It is not «no se pudo responder por internet» — the network worked. The
+   screen has no state today that says *answered, and withheld*, and inventing one in code is
+   exactly the decision this rule exists to take on the canvas first.
+2. **The judgement in flight.** The model's call sits between the provider's answer and the draw, so
+   the phrase now waits on two round trips instead of one. Whether that wait shows, and as what, is
+   a design decision and not an implementation detail.
+
+**What is already decided and needs no board:** a translation that passes is drawn exactly as it is
+drawn today. The judgement adds nothing to the screen when it says yes.
