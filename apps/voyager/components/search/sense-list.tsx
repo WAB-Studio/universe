@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 
-import type { Sense } from "@/lib/dictionary/index-build";
+import { pronunciationBlocks, type Sense } from "@/lib/dictionary/index-build";
 import type { WordAnswer } from "@/lib/dictionary/lookup";
 import { speak, speechSupported } from "@/lib/speech/speak";
 import {
@@ -207,10 +207,15 @@ function SenseDetail({
 function PosSegment({
   segment,
   compact,
+  ipaHeaded,
   t,
 }: {
   segment: SenseSegment;
   compact: boolean;
+  // True inside a pronunciation block (RL-51): the block's head already
+  // named the IPA, so the label row stops carrying one of its own
+  // (docs/voyager/DESIGN.md "The pronunciation groups the entry").
+  ipaHeaded: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const segmentIpa = segment.senses[0].ipa;
@@ -219,7 +224,7 @@ function PosSegment({
     <Flex direction="column" gap="3">
       <Flex align="center" gap="2">
         <PosLabel>{t(`pos.${segment.pos}`)}</PosLabel>
-        {!compact && segmentIpa !== null && (
+        {!compact && !ipaHeaded && segmentIpa !== null && (
           // IPA runs past 120 characters with no space to break on, and it is
           // metadata beside the headword, not the headword itself — one
           // clamped line reads better than four wrapped ones. `PosLabel` has
@@ -259,15 +264,18 @@ function segmentByPos(senses: readonly Sense[]): SenseSegment[] {
   return segments;
 }
 
-// A group of part-of-speech segments ruled apart with a hairline, one per
-// headword or inflected form.
-function SenseGroup({
+// Part-of-speech segments ruled apart with a hairline: the whole of a
+// headword's senses when it carries one pronunciation, one block's share of
+// them when it carries several.
+function PosSegments({
   senses,
   compact,
+  ipaHeaded,
   t,
 }: {
   senses: readonly Sense[];
   compact: boolean;
+  ipaHeaded: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const segments = segmentByPos(senses);
@@ -277,7 +285,57 @@ function SenseGroup({
       {segments.map((segment, index) => (
         <Flex direction="column" gap="3" key={index}>
           {index > 0 && <Separator size="4" />}
-          <PosSegment segment={segment} compact={compact} t={t} />
+          <PosSegment segment={segment} compact={compact} ipaHeaded={ipaHeaded} t={t} />
+        </Flex>
+      ))}
+    </Flex>
+  );
+}
+
+// A group of part-of-speech segments, one per headword or inflected form —
+// gathered first into one block per pronunciation when the group carries
+// more than one (RL-51, board `PalabraPronunciacionOscuroMovil`). `row` is
+// two words wearing one spelling: its `/ɹaʊ/` senses used to sit at
+// positions three and five of five.
+//
+// One pronunciation is no grouping — 59,148 of 59,253 headwords, `leave`
+// and `grudge` among them — and draws exactly what it drew before, through
+// the same branch the breakdown takes. `compact` never groups: that variant
+// carries no IPA at all (docs/voyager/DESIGN.md "A word block on
+// `SinEntradaFrase` carries its translations alone"), so a head there would
+// name a pronunciation nothing under it repeats.
+function SenseGroup({
+  senses,
+  compact,
+  t,
+}: {
+  senses: readonly Sense[];
+  compact: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const blocks = compact ? null : pronunciationBlocks(senses);
+
+  if (blocks === null) {
+    return <PosSegments senses={senses} compact={compact} ipaHeaded={false} t={t} />;
+  }
+
+  return (
+    <Flex direction="column" gap="4">
+      {blocks.map((block, index) => (
+        <Flex direction="column" gap="3" key={index} data-pronunciation-block={block.ipa ?? ""}>
+          {index > 0 && <Separator size="4" />}
+          {/* The block head is the IPA alone — no headword repeated, no
+              number — one step up from the sense IPA it replaces, in the
+              muted metadata tone (docs/voyager/DESIGN.md). The block that
+              gathers senses carrying no IPA draws no head: `can` and `pace`
+              are the only two entries that reach it, each through a proper
+              noun normalising into the word. */}
+          {block.ipa !== null && (
+            <Text size="3" muted truncate>
+              {block.ipa}
+            </Text>
+          )}
+          <PosSegments senses={block.senses} compact={compact} ipaHeaded t={t} />
         </Flex>
       ))}
     </Flex>

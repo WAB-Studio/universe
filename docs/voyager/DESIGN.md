@@ -1355,3 +1355,78 @@ Numbers 2 and 5 are decisions to do nothing, written down so the next session do
 
 **What is already decided and needs no board:** a translation that passes is drawn exactly as it is
 drawn today. The judgement adds nothing to the screen when it says yes.
+
+### The pronunciation groups the entry, above the part of speech, 2026-09-20
+
+`RL-51`. The user brought a screenshot of `row` — five sense groups, 22 lines of translation, four English
+definitions — and asked whether the model already generating text should order the lists and fold
+them away. **Measured first, and the answer moved.**
+
+**`row` is not the shape the app answers.** Of 59,253 headwords, **54,702 carry one single sense
+(92.3 %)** and **50,645 carry three translations or fewer (85.5 %)**. Only **284 (0.48 %)** carry
+fifteen or more, and **30 (0.05 %)** carry twenty-five. A fold spent on the screen in the screenshot
+is a tap charged to the 92 %.
+
+**What makes that screen long is not padding.** `remo`, `fila`, `pelea`, `remar`, `pelear` are five
+different words sharing one spelling. Trimming them deletes meaning, not noise — which is the same
+thing «Pruning the dictionary was measured and refused» found, by a different route.
+
+**The lazy gloss prune does not answer this, measured the same day.** Its shape is *a sense with no
+definition carrying five or more glosses* (3,635 senses across the asset). In `row` it reaches
+**exactly one** — the `/ɹaʊ/` noun with «cisco, gresca, pelotera, pifostio, barullo, bulla» — and it
+demotes rather than deletes, so the screen loses **no line at all**. That decision stands unchanged
+and keeps its own shape; it simply is not this defect's fix.
+
+**The defect is that the entry is two words and the screen draws it as one.** `row` is `/rɑː/`
+(remo, fila, remar) and `/ɹaʊ/` (pelea, pelear). Senses sort by part of speech, so the two `/ɹaʊ/`
+senses land at **positions three and five of five**: a reader who met «a row» as a fight sweeps the
+whole screen twice. Grouping by pronunciation first puts them together and costs nothing — the IPA
+is already in the asset, no table, no call, no connection.
+
+**What it touches, measured 2026-09-20 against the shipped asset.**
+
+| | |
+|---|---|
+| Headwords with more than one distinct IPA | **105** of 59,253 |
+| Of those, senses interleaved across pronunciations | **11** |
+| Of those 105, any sense carrying a null IPA | **0** |
+
+The eleven are `bow`, `can`, `char`, `content`, `do`, `flush`, `lead`, `one`, `row`, `second` and
+`tear` — the homographs a reader of English actually meets. The zero is what makes the grouping
+safe: no block is ever drawn without a pronunciation to name it, so there is no orphan bucket state
+to design.
+
+**RL-43 keeps its job, narrowed.** Frequency still orders the parts of speech; it now orders them
+**inside** a pronunciation instead of across the entry. RL-47's suffix clause still outranks both.
+Nothing is retired: RL-43's own examples — `grudge`, `leave` — carry one pronunciation each and
+answer exactly as they answer today, as do the other 59,148 headwords.
+
+**The fold was not taken, and neither was hiding what the model prunes. Decided by the user
+2026-09-20.** The English definition keeps drawing open (2026-09-10 stands), and a pruned gloss
+keeps moving to the end of its list rather than off the screen, on the ground already measured:
+the model is wrong about one in seven, and a wrong call must cost a place in the order, not a
+translation.
+
+**Board: `PalabraPronunciacionOscuroMovil`.** One board, on the primary face. Light is the token
+table's own inversion and the desktop is the same column wider — neither is a decision this change
+takes.
+
+**Which pronunciation leads, and what heads its block. Decided by the user 2026-09-20, on the
+board.**
+
+- **The block order is the one that already falls out.** The pronunciation of whichever sense RL-43
+  puts first heads the entry; the rest follow in the order their first sense already had. No new
+  criterion is invented, because none is available: SUBTLEX scores `row` as a word, not as a
+  pronunciation, so nothing in the asset knows whether «remar» beats «pelear». The consequence is
+  deliberate — **no headword changes which sense leads it**; the scattered ones are only gathered.
+  Sizing the blocks by sense count was offered and refused: it measures the entry, not the use.
+  Asking the model was offered and refused: 105 calls to settle an order no reader asked for, and it
+  would take the answer off the device.
+- **The block head is the IPA alone**, in the metadata face — Plex Sans 15px, muted — and the
+  part-of-speech label underneath stops carrying an IPA of its own, because the head above already
+  named it. Repeating the headword per block (`row /rɑː/`) was refused: it draws the same word twice
+  on one screen. Numbering the blocks (`1 · /rɑː/`) was refused: it imports a paper dictionary's
+  convention the app uses nowhere else.
+- **A sense keeps its own IPA line only where it still differs from its block's**, which is the rule
+  `SenseDetail` already applies — inside a pronunciation block that case cannot arise, so the line
+  simply stops being drawn there.

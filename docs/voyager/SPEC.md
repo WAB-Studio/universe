@@ -94,6 +94,26 @@ this gets built, and no schema, table or column is "prepared for" it.
     `faster` offers `fast`, `gone` offers `go`, `women` offers `woman`, `people` offers `person`.
     `word` offers nothing, so an answered query gains no clutter.
 
+- [ ] **RL-51** — A headword whose senses carry more than one pronunciation answers in one block per
+  pronunciation, its IPA named once at the block's head, and RL-43's frequency order governs the
+  parts of speech **inside** a block rather than across the whole entry. `row` answers `/rɑː/` —
+  «remo, fila, remar» — and `/ɹaʊ/` — «pelea, pelear» — as two blocks, instead of leaving the two
+  `/ɹaʊ/` senses at positions three and five of five for a reader who met «a row» as a fight. It is
+  answered from the device and touches the network on no keystroke.
+  - Measured 2026-09-20 against the shipped asset: **105 of 59,253 headwords carry more than one
+    distinct IPA**, and **11 of those interleave** — their senses alternate between pronunciations
+    once sorted by part of speech. They are `bow`, `can`, `char`, `content`, `do`, `flush`, `lead`,
+    `one`, `row`, `second` and `tear`: the homographs a reader of English actually meets.
+  - **In all 105, every sense carries an IPA — none is null.** No block is ever drawn without a
+    pronunciation to name it, so there is no orphan group to design a state for.
+  - The other 59,148 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
+    not retired — `grudge` and `leave`, its own examples, carry one pronunciation each.
+  - **Which block leads is not a new judgement.** The pronunciation of the sense RL-43 already put
+    first heads the entry, so no headword changes which sense leads it; the scattered ones are only
+    gathered. Nothing in the asset ranks a pronunciation, and nothing is asked over the network to
+    invent one.
+  - Not built. Board: `PalabraPronunciacionOscuroMovil`, drawn 2026-09-20 and taken by the user.
+
 - [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
   record holds what the dictionary could not answer and not only what it could. The same settling rule
   governs it: a word half-typed is never a row.
