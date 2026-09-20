@@ -38,6 +38,10 @@ async function blockHeads(page: Page): Promise<string[]> {
   });
 }
 
+// `word.spec.ts`'s own margin: what the decoration hook needs to resolve
+// `/api/word/text` and paint, past the answer the device already drew.
+const DECORATION_SETTLE_MARGIN_MS = 900;
+
 async function answer(page: Page, word: string): Promise<void> {
   const searchBox = page.getByRole("textbox", { name: messages.search.label });
   await searchBox.fill(word);
@@ -121,4 +125,126 @@ test("RL-51 leaves RL-47 standing: `bed` answers as itself and `sternly` still l
     return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
   expect(order).toBe(true);
+});
+
+// The 16 headwords that used to split on a notation accident. The asset
+// writes one sound several ways — `hope` carries `/hoʊp/` and `/ˈhoʊp/`,
+// `daisy` `/ˈdeɪzi/` and `/ˈdeɪ.zi/`, `god` `/ɡɑ(d)/` and `/ɡɑd/` — and two
+// blocks over them told the reader that two identical sounds differ. Which
+// 16 they are is proved over the whole asset in
+// `lib/dictionary/index-build.test.ts`; these six are what the screen is
+// driven through. `o` is the seventh and cannot be: `lookupWord` answers no
+// one-letter headword but "a" and "i", so `o` draws nothing on any screen,
+// RL-51 or not.
+test("RL-51: a sound written two ways is one sound — `hope` and its five kin answer ungrouped", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+  await loadDictionary(page);
+
+  for (const word of ["hope", "daisy", "mass", "ham", "john", "god"]) {
+    await answer(page, word);
+    expect(await blockHeads(page), word).toEqual([]);
+  }
+});
+
+// The other half of the same rule: the stress mark is stripped at position 0
+// and nowhere else, so a noun stressed on its first syllable and a verb
+// stressed on its second stay two words — which is the whole distinction
+// RL-51 exists to draw.
+test("RL-51: `imprint` and its four kin still answer as two blocks", async ({ page }) => {
+  await deleteTranslator(page);
+  await loadDictionary(page);
+
+  for (const word of ["imprint", "invite", "mandate", "canton", "koine"]) {
+    await answer(page, word);
+    expect((await blockHeads(page)).length, word).toBe(2);
+  }
+});
+
+// RL-26 beside RL-51: `lib/speech/speak.ts` is handed the spelling, so the
+// browser picks one of `row`'s two sounds and the control used to claim both
+// and name neither.
+test("RL-51: the voice control names the pronunciation it speaks", async ({ page }) => {
+  await deleteTranslator(page);
+  await loadDictionary(page);
+  await answer(page, "row");
+
+  const named = messages.word.listenPronunciation.replace("{headword}", "row").replace("{ipa}", "/rɑː/");
+  await expect(page.getByRole("button", { name: named, exact: true })).toBeVisible();
+
+  // An entry with one pronunciation names nothing extra: there is no second
+  // sound for the reader to have it confused with.
+  await answer(page, "umbrella");
+  const plain = messages.word.listen.replace("{headword}", "umbrella");
+  await expect(page.getByRole("button", { name: plain, exact: true })).toBeVisible();
+});
+
+// RL-42's example is decoration resolved from the spelling alone, drawn
+// after the last block, and on a grouped entry it read as that block's own:
+// `row` closed with «Me gusta remar el bote» under /ɹaʊ/, the fight. The
+// foot line names the pronunciation the example is about.
+test("RL-51: the generated example names the block it belongs to, and only on a grouped entry", async ({
+  page,
+  stubWordText,
+}) => {
+  await deleteTranslator(page);
+  await stubWordText({
+    definition: null,
+    example: { en: "I like to row the boat.", es: "Me gusta remar el bote." },
+  });
+  await loadDictionary(page);
+
+  await answer(page, "row");
+  await page.waitForTimeout(DECORATION_SETTLE_MARGIN_MS);
+  await expect(page.getByText("Me gusta remar el bote.")).toBeVisible();
+  const named = messages.word.examplePronunciation.replace("{ipa}", "/rɑː/");
+  await expect(page.getByText(named, { exact: true })).toBeVisible();
+
+  // The line sits under the example, not over it: it answers the block the
+  // example was drawn beneath.
+  const belowExample = await page.evaluate(() => {
+    const line = document.querySelector("main [data-generated-pronunciation]");
+    const block = document.querySelector("main [data-generated-block]");
+    if (!line || !block) return null;
+    return Boolean(block.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  expect(belowExample).toBe(true);
+
+  // An entry that draws no block gains nothing: there is no second
+  // pronunciation the example could have been read as.
+  await answer(page, "umbrella");
+  await page.waitForTimeout(DECORATION_SETTLE_MARGIN_MS);
+  await expect(page.getByText("Me gusta remar el bote.")).toBeVisible();
+  await expect(page.locator("main [data-generated-pronunciation]")).toHaveCount(0);
+});
+
+// The breakdown of a phrase the dictionary cannot answer carries
+// translations alone (docs/voyager/DESIGN.md "A word block on
+// `SinEntradaFrase`"), so it never groups and never draws an IPA. Every
+// phrase the other specs drive happens to hold no multi-pronunciation word,
+// which left `compact` guarding this by accident of vocabulary: `row` and
+// `tear` are what really test it.
+test("RL-51: the no-entry breakdown never groups — `row` inside a phrase draws no block and no IPA", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+  await page.route("**/api/translate", async (route) => {
+    await route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "provider" }) });
+  });
+  await loadDictionary(page);
+
+  const searchBox = page.getByRole("textbox", { name: messages.search.label });
+  await searchBox.fill("row zzqx");
+  await expect(page.getByRole("heading", { name: "row", exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(messages.search.noEntry.wordMiss)).toBeVisible();
+
+  // The word really is in the breakdown, with the senses that would have
+  // grouped on the word screen.
+  await expect(page.getByText("remo", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("pelea", { exact: true }).first()).toBeVisible();
+
+  await expect(page.locator("main [data-pronunciation-block]")).toHaveCount(0);
+  await expect(page.getByText("/rɑː/", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("/ɹaʊ/", { exact: true })).toHaveCount(0);
 });

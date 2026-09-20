@@ -7,7 +7,7 @@
 // corpus, except where a test names a headword `pos-frequency.ts` scores
 // (`row`, `leave`) to put that measured order under the grouping.
 //
-// The last two tests are the exception on purpose: RL-51's claim is
+// The last four tests are the exception on purpose: RL-51's claim is
 // exhaustive — *every* headword carrying more than one pronunciation draws
 // each of them in one run — and a claim over the corpus can only be proved
 // over the corpus. They drive the shipped asset through the same
@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 
-import { buildIndex, groupFor, pronunciationBlocks, type DictionaryIndex, type Sense } from "./index-build";
+import { buildIndex, groupFor, ipaKey, pronunciationBlocks, type DictionaryIndex, type Sense } from "./index-build";
 import type { DictionaryPayload, PartOfSpeech, RawEntry } from "./format";
 import manifest from "../../public/dictionary/manifest.json";
 
@@ -133,7 +133,68 @@ test("RL-51: no sense is lost or repeated by the gathering — the blocks hold t
   for (const sense of senses) assert.ok(gathered.includes(sense), sense.translations[0]);
 });
 
-// --- the 58,754 headwords that must not move ---
+// --- one sound, written several ways ---
+
+test("RL-51: the comparison key drops notation and a leading stress, and keeps every mark inside the word", () => {
+  // Syllable dots, a tie bar and parentheses are how the asset writes, not
+  // what a reader hears; a mark the word carries at position 0 is no
+  // distinction either, since the word has only one stress to place.
+  assert.equal(ipaKey("/ˈdeɪ.zi/"), ipaKey("/ˈdeɪzi/"));
+  assert.equal(ipaKey("/ˈd͡ʒɑn/"), ipaKey("/d͡ʒɑn/"));
+  assert.equal(ipaKey("/ɡɑ(d)/"), ipaKey("/ɡɑd/"));
+  assert.equal(ipaKey("/hoʊp/"), ipaKey("/ˈhoʊp/"));
+
+  // A stress inside the word is the noun-verb distinction itself, and a
+  // secondary stress is a mark of its own — `canton` carries both spellings
+  // and is two words.
+  assert.notEqual(ipaKey("/ɪmˈpɹɪnt/"), ipaKey("/ˈɪm.pɹɪnt/"));
+  assert.notEqual(ipaKey("/ˈkæntɒn/"), ipaKey("/ˈkænˌtɒn/"));
+});
+
+test("RL-51: two spellings of one sound are one pronunciation, so the entry draws no block", () => {
+  // `hope`'s own three senses, as the asset carries them: the proper noun
+  // writes the stress the other two leave off. Before this the entry split
+  // in two and told the reader those sounds differ.
+  const index = fakeIndex([
+    entry("hope", "v", "/hoʊp/", "esperar"),
+    entry("hope", "n", "/hoʊp/", "esperanza"),
+    entry("hope", "pn", "/ˈhoʊp/", "Hope"),
+  ]);
+
+  assert.equal(pronunciationBlocks(sensesOf(index, "hope")), null);
+});
+
+test("RL-51: a stress inside the word still separates the noun from the verb", () => {
+  // `imprint`'s own two IPAs, under a headword `pos-frequency.ts` scores no
+  // row for, so POS_RANK alone orders them and the verb leads.
+  const index = fakeIndex([
+    entry("zorp", "n", "/ˈɪm.pɹɪnt/", "huella"),
+    entry("zorp", "v", "/ɪmˈpɹɪnt/", "imprimir"),
+  ]);
+
+  assert.deepEqual(drawn(pronunciationBlocks(sensesOf(index, "zorp"))), [
+    ["/ɪmˈpɹɪnt/", ["imprimir"]],
+    ["/ˈɪm.pɹɪnt/", ["huella"]],
+  ]);
+});
+
+test("RL-51: the block wears the spelling of its own first sense, never a normalised one", () => {
+  const index = fakeIndex([
+    entry("zorp", "v", "/ˈdeɪ.zi/", "uno"),
+    entry("zorp", "n", "/ˈdeɪzi/", "dos"),
+    entry("zorp", "adj", "/zɔːp/", "tres"),
+  ]);
+  const blocks = pronunciationBlocks(sensesOf(index, "zorp"));
+  assert.ok(blocks !== null);
+
+  assert.equal(blocks[0].ipa, "/ˈdeɪ.zi/");
+  assert.deepEqual(
+    blocks[0].senses.map((sense) => sense.translations[0]),
+    ["uno", "dos"],
+  );
+});
+
+// --- the 58,770 headwords that must not move ---
 
 test("RL-51: one pronunciation is no grouping — `leave` answers with no block at all", () => {
   // `pos-frequency.ts` scores `leave` "vn": «dejar» leads «permiso», the
@@ -208,7 +269,10 @@ function defectOf(index: DictionaryIndex, headword: string): string | null {
   const group = groupFor(index, headword);
   if (group === null) return "no group at all";
   const senses = group.senses;
-  const named = new Set(senses.filter((sense) => sense.ipa !== null).map((sense) => sense.ipa));
+  // Counted by sound, never by spelling: `hope` writes one sound two ways
+  // and owes the reader one block, not two (RL-51, `ipaKey`).
+  const sound = (sense: Sense): string | null => (sense.ipa === null ? null : ipaKey(sense.ipa));
+  const named = new Set(senses.filter((sense) => sense.ipa !== null).map(sound));
   const blocks = pronunciationBlocks(senses);
 
   if (named.size < 2) return blocks === null ? null : "grouped on one pronunciation";
@@ -222,8 +286,8 @@ function defectOf(index: DictionaryIndex, headword: string): string | null {
   // Contiguity: a pronunciation opens exactly once down the entry. Counted
   // over the drawn senses themselves, so a block per sense — the shape the
   // defect had before RL-51 — reads as more runs than pronunciations.
-  const runs = drawn.filter((sense, at) => at === 0 || sense.ipa !== drawn[at - 1].ipa).length;
-  const pronunciations = new Set(drawn.map((sense) => sense.ipa)).size;
+  const runs = drawn.filter((sense, at) => at === 0 || sound(sense) !== sound(drawn[at - 1])).length;
+  const pronunciations = new Set(drawn.map(sound)).size;
   if (runs !== pronunciations) return `${pronunciations} pronunciations drawn in ${runs} runs`;
 
   for (const block of blocks) {
@@ -272,8 +336,52 @@ test("RL-51: the census docs/voyager/SPEC.md records is the one the app's own in
     if (drawn.some((sense, at) => sense !== group.senses[at])) interleaved++;
   }
 
-  assert.equal(multiple, 190, "headwords carrying more than one named pronunciation");
-  assert.equal(interleaved, 26, "of those, the ones whose senses the gathering really moves");
+  assert.equal(multiple, 174, "headwords carrying more than one named pronunciation");
+  assert.equal(interleaved, 24, "of those, the ones whose senses the gathering really moves");
   assert.equal(nameless, 2, "of those, the ones carrying a sense with no pronunciation (`can`, `pace`)");
   assert.equal(defectOf(index, "row"), null);
+});
+
+test("RL-51: exactly the 16 headwords that split on notation alone stop splitting, and no other does", () => {
+  const index = shippedIndex();
+
+  // Derived, never listed: a headword carrying more than one *spelling*
+  // that answers with no block at all is one the normalisation folded.
+  const folded = index.sortedHeadwords.filter((headword) => {
+    const senses = groupFor(index, headword)!.senses;
+    const spellings = new Set(senses.filter((sense) => sense.ipa !== null).map((sense) => sense.ipa));
+    return spellings.size > 1 && pronunciationBlocks(senses) === null;
+  });
+
+  assert.deepEqual(folded, [
+    "buffalo",
+    "calliope",
+    "daisy",
+    "flora",
+    "god",
+    "ham",
+    "hope",
+    "iron curtain",
+    "john",
+    "majesty",
+    "mass",
+    "mercury",
+    "o",
+    "roger",
+    "trinity",
+    "tyre",
+  ]);
+});
+
+test("RL-51: the homographs a stress inside the word really separates still answer in two blocks", () => {
+  // Noun-stress against verb-stress, which is the distinction RL-51 exists
+  // to draw. `english` and `facebook` are here for the same reason and
+  // through other marks: a stress mid-word, and a secondary stress.
+  const index = shippedIndex();
+
+  for (const headword of ["imprint", "invite", "mandate", "canton", "koine", "english", "facebook"]) {
+    const blocks = pronunciationBlocks(groupFor(index, headword)!.senses);
+    assert.ok(blocks !== null, `${headword} stopped grouping`);
+    assert.equal(blocks.length, 2, `${headword} drew ${blocks.length} blocks`);
+  }
 });

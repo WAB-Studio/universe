@@ -52,13 +52,15 @@
     "networkFailed": "No se pudo responder por internet",
     "example": "Ejemplo",
     "exampleTranslation": "Traducción",
+    "examplePronunciation": "El ejemplo corresponde a {ipa}",
     "suggestions": "Sugerencias",
     "listen": "Escuchar «{headword}»",
+    "listenPronunciation": "Escuchar «{headword}» {ipa}",
     "pos": {
       "n": "sustantivo",
       "adj": "adjetivo",
       "v": "verbo",
-      "pn": "pronombre",
+      "pn": "nombre propio",
       "adv": "adverbio",
       "phraseologicalUnit": "locución"
     }

@@ -122,7 +122,22 @@ function getServerSnapshot(): boolean {
 // never inferred from its name or version — so a browser with no
 // `speechSynthesis` shows no control at all, rather than one that does
 // nothing when pressed.
-function SpeakButton({ headword, t }: { headword: string; t: ReturnType<typeof useTranslations> }) {
+//
+// `lib/speech/speak.ts` is handed the spelling, so the browser itself picks
+// which pronunciation of a grouped entry comes out. The control therefore
+// names the one it really speaks — the entry's leading block, drawn
+// directly under the headword — instead of claiming two sounds and offering
+// one unnamed (RL-51). A second control was refused: the voice takes the
+// spelling, so both would sound alike.
+function SpeakButton({
+  headword,
+  ipa,
+  t,
+}: {
+  headword: string;
+  ipa: string | null;
+  t: ReturnType<typeof useTranslations>;
+}) {
   const supported = useSyncExternalStore(subscribeNever, speechSupported, getServerSnapshot);
 
   if (!supported) return null;
@@ -134,12 +149,22 @@ function SpeakButton({ headword, t }: { headword: string; t: ReturnType<typeof u
       variant="ghost"
       color="gray"
       tap={44}
-      aria-label={t("listen", { headword })}
+      aria-label={ipa === null ? t("listen", { headword }) : t("listenPronunciation", { headword, ipa })}
       onClick={() => speak(headword)}
     >
       <SpeakerGlyph />
     </IconButton>
   );
+}
+
+// The IPA heading the entry's first pronunciation block, or null when the
+// entry draws no block at all (58,770 of 58,944 headwords) or when that
+// first block is the headless one — which only `can` and `pace` carry, and
+// never in first place. The voice control and the generated example are
+// both named from here, so neither can name a sound the screen does not
+// lead with.
+function leadPronunciation(senses: readonly Sense[]): string | null {
+  return pronunciationBlocks(senses)?.[0].ipa ?? null;
 }
 
 // One sense's own body: every translation on its own line, its English
@@ -425,6 +450,10 @@ export function SenseList({
   const t = useTranslations("word");
   const tSearch = useTranslations("search");
   const compact = variant === "compact";
+  // Null on every compact call: the breakdown groups nothing, so it names
+  // nothing either (docs/voyager/DESIGN.md "A word block on
+  // `SinEntradaFrase` carries its translations alone").
+  const exactLead = !compact && answer.exact !== null ? leadPronunciation(answer.exact.senses) : null;
 
   const hasAnswer = answer.exact !== null || answer.viaInflection.length > 0;
   if (!hasAnswer) {
@@ -453,10 +482,24 @@ export function SenseList({
         <Flex direction="column" gap="3">
           <Flex align="center" gap="1">
             {showExactHeadword && <BlockHeading word={answer.exact.headword} wordHref={wordHref} />}
-            {!compact && <SpeakButton headword={answer.exact.headword} t={t} />}
+            {!compact && <SpeakButton headword={answer.exact.headword} ipa={exactLead} t={t} />}
           </Flex>
           <SenseGroup senses={answer.exact.senses} compact={compact} t={t} />
           {!compact && generated && <GeneratedText state={generated} />}
+          {/* RL-51: the example is decoration resolved from the spelling
+              alone (RL-42), so it lands under whichever block the entry
+              draws last and reads as that block's own — `row` closed with
+              «Me gusta remar el bote» beneath /ɹaʊ/, `tear` with «no rasgar
+              el vestido» beneath /tiə/, 5 of 5 measured. The foot line says
+              which pronunciation it is about: the entry's leading one, the
+              sense the model writes for and the sound «Escuchar» speaks. An
+              entry that draws no block reads unchanged — there is no other
+              block for it to be mistaken for. */}
+          {!compact && generated?.kind === "resolved" && exactLead !== null && (
+            <Text size="1" color="gray" data-generated-pronunciation={exactLead}>
+              {t("examplePronunciation", { ipa: exactLead })}
+            </Text>
+          )}
         </Flex>
       )}
 
@@ -481,7 +524,7 @@ export function SenseList({
                       </PosLabel>
                       <Flex align="center" gap="1">
                         <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
-                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                        {!compact && <SpeakButton headword={hit.lemma} ipa={leadPronunciation(hit.group.senses)} t={t} />}
                       </Flex>
                     </Flex>
                     <SenseGroup senses={hit.group.senses} compact={compact} t={t} />
@@ -505,7 +548,7 @@ export function SenseList({
                 {showExactHeadword && (
                   <BlockHeading word={answer.viaInflection[0].surface} wordHref={wordHref} />
                 )}
-                {!compact && <SpeakButton headword={answer.viaInflection[0].surface} t={t} />}
+                {!compact && <SpeakButton headword={answer.viaInflection[0].surface} ipa={null} t={t} />}
               </Flex>
               {!compact && networkAnswer && (
                 <NetworkAnswer state={networkAnswer} surface={answer.viaInflection[0].surface} />
@@ -521,7 +564,7 @@ export function SenseList({
                       <PosLabel muted>{t("formOf", { surface: hit.surface, lemma: hit.lemma })}</PosLabel>
                       <Flex align="center" gap="1">
                         <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
-                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                        {!compact && <SpeakButton headword={hit.lemma} ipa={leadPronunciation(hit.group.senses)} t={t} />}
                       </Flex>
                     </Flex>
                     <SenseGroup senses={hit.group.senses} compact={compact} t={t} />

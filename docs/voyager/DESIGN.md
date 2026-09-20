@@ -1415,6 +1415,13 @@ entries at all, and over dropping the acronym the way the one-character query al
 That second option stays available and is a wider change than this one: it would touch which entries
 the dictionary admits, not how one screen draws them.
 
+**What that block really looks like, and what was accepted with it. Decided by the user 2026-09-20,
+on the critic's finding.** It is not «a block no pronunciation heads» in any way a reader can see:
+it is a block with no IPA line of its own, cut off from the one above by the same 1px hairline that
+rules two synonym lists apart. Nothing on the screen says the sound changed, so the acronym reads as
+a further sense of the block above it — `CAN` under `/ˈkæn/`, `PACE` under `/peɪs/`. The user took it
+knowing that, on two entries of 58,944, over inventing a head the asset cannot supply.
+
 **RL-43 keeps its job, narrowed.** Frequency still orders the parts of speech; it now orders them
 **inside** a pronunciation instead of across the entry. RL-47's suffix clause still outranks both.
 Nothing is retired: RL-43's own examples — `grudge`, `leave` — carry one pronunciation each and
@@ -1449,3 +1456,53 @@ board.**
 - **A sense keeps its own IPA line only where it still differs from its block's**, which is the rule
   `SenseDetail` already applies — inside a pronunciation block that case cannot arise, so the line
   simply stops being drawn there.
+
+### The grouping compares sounds, not spellings, 2026-09-20
+
+`RL-51`, on the critic's findings. Four changes, all taken by the user that day.
+
+**A sound written two ways is one sound.** 16 of the 190 headwords that carried «more than one
+pronunciation» carried one, twice: `hope` as `/hoʊp/` and `/ˈhoʊp/`, `daisy` as `/ˈdeɪzi/` and
+`/ˈdeɪ.zi/`, `god` as `/ɡɑ(d)/` and `/ɡɑd/`. Two blocks over them tell the reader that two identical
+sounds differ, which is worse than the interleaving RL-51 exists to fix. **Grouping now compares a
+normalised form** — syllable dots, tie bars, parentheses and spacing dropped, and a primary stress
+mark dropped at position 0 alone — **and draws the IPA the asset carries, always.** The 16 that fold
+are `buffalo`, `calliope`, `daisy`, `flora`, `god`, `ham`, `hope`, `iron curtain`, `john`, `majesty`,
+`mass`, `mercury`, `o`, `roger`, `trinity` and `tyre`; the census falls from 190 and 26 to **174 and
+24**.
+
+**The stress clause is position 0 and nowhere else**, because a stress inside the word is the
+distinction itself: `imprint` `/ɪmˈpɹɪnt/` against `/ˈɪm.pɹɪnt/`, and `invite`, `mandate`, `canton`
+and `koine` — noun-stress against verb-stress, the homographs a reader of English actually meets. A
+general strip folds all five and takes `english` and `facebook` with them. `english` and `facebook`
+are why the mark is not simply deleted either way: their two spellings differ by a stress mid-word
+and by a secondary stress, and `canton` carries that same secondary-stress pair while being two
+words.
+
+**«Escuchar» says which pronunciation it speaks.** The control mounts once per headword and
+`lib/speech/speak.ts` is handed the spelling, so the browser picks a pronunciation and the screen
+said nothing about which: a grouped entry claimed two sounds and offered one. The control now names
+the entry's **leading block** — the IPA drawn directly under the headword — in its own label. A
+second control was refused: both would take the same spelling and sound the same. An entry that
+draws no block names nothing extra; there is no second sound to be confused with.
+
+**The generated example names the block it belongs to.** RL-42's example is decoration resolved
+from the spelling alone and is drawn after the last block, so it read as that block's own: `row`
+closed with «Me gusta remar el bote» under `/ɹaʊ/`, the fight; `tear` with «no rasgar el vestido»
+under `/tiə/`, the teardrop — 5 of 5 measured. A line at its foot now names the pronunciation the
+example is about: the entry's leading one, the same sound «Escuchar» speaks, which is the sense the
+model writes for and was the right one in all 5. **The model is not asked which block it wrote for**
+— that would be 174 more calls and would take the answer off the device. **On a grouped entry
+alone**: an entry that draws no block gains nothing and is drawn untouched.
+
+**`pn` is a proper noun, not a pronoun.** `lib/dictionary/pos-frequency.ts` scores «p» for proper
+noun and `index-build.ts` maps it to `pn`, but the label read «pronombre»: **5,866 senses** — `Sol`,
+`Tierra`, `Job`, `Facebook`, `OMS`, `CAN` — were drawn as pronouns. The label was wrong, never the
+category; only the string changed.
+
+**Which of these a board covers.** The grouping rule, the voice control's label and the `pn` string
+draw nothing new: `PalabraPronunciacionOscuroMovil` already fixes the block head, the label is the
+control's accessible name and carries no pixels, and the part-of-speech label only reads differently.
+**The generated example's foot line has no board.** It ships as one muted metadata line under the
+generated block, in the tone the token table already fixes, and it is the one thing here a reader
+sees that nobody drew first.

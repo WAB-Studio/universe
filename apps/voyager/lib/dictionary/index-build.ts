@@ -150,29 +150,60 @@ export function groupFor(
   return { headword: normalisedHeadword, senses };
 }
 
+// Syllable dots, tie bars, parentheses and spacing: notation the asset
+// spends freely and a reader hears nothing of.
+const IPA_NOTATION = /[.͡()\s]/gu;
+
+// A primary stress mark at the very start of the transcription, opening
+// delimiter and all — `/ˈhoʊp/` and `[ˈhoʊp]` alike.
+const LEADING_PRIMARY_STRESS = /^([/[]?)ˈ/u;
+
+// What two pronunciations are compared on. Never what is drawn: the IPA on
+// screen is always the one the asset carries.
+//
+// The asset writes one sound several ways — `hope` carries `/hoʊp/` beside
+// `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` beside `/ˈdeɪ.zi/` — and a block per
+// spelling tells the reader that two identical sounds differ. Measured
+// 2026-09-20 over the shipped asset: 16 of the 190 headwords split on a
+// notation accident alone.
+//
+// The stress clause is position 0 and nowhere else. A word carrying one
+// stress is not distinguished by whether the asset wrote the mark, but a
+// stress *inside* the word is the whole distinction: `imprint` /ɪmˈpɹɪnt/
+// against /ˈɪm.pɹɪnt/, and `invite`, `mandate`, `canton`, `koine` — noun
+// against verb, the homographs RL-51 exists to separate.
+export function ipaKey(ipa: string): string {
+  return ipa.replace(IPA_NOTATION, "").replace(LEADING_PRIMARY_STRESS, "$1");
+}
+
 // A group's senses gathered by pronunciation, without reordering the entry:
 // blocks come in the order their own first sense already had, and inside a
 // block the senses keep the order groupFor gave them. A sense with no IPA
 // gathers with the other senses that have none, into a block nothing heads.
+// A block wears its own first sense's spelling: no headword in the asset
+// carries two spellings of one sound beside a second sound (measured
+// 2026-09-20, zero of 58,944), so nothing under a head contradicts it.
 function gatherByIpa(senses: readonly Sense[]): PronunciationBlock[] {
   const blocks: PronunciationBlock[] = [];
-  const openByIpa = new Map<string | null, Sense[]>();
+  const openByKey = new Map<string | null, Sense[]>();
   for (const sense of senses) {
-    const open = openByIpa.get(sense.ipa);
+    const key = sense.ipa === null ? null : ipaKey(sense.ipa);
+    const open = openByKey.get(key);
     if (open) {
       open.push(sense);
       continue;
     }
     const started = [sense];
-    openByIpa.set(sense.ipa, started);
+    openByKey.set(key, started);
     blocks.push({ ipa: sense.ipa, senses: started });
   }
   return blocks;
 }
 
 // RL-51: one block per pronunciation, or null when the group carries no more
-// than one and the screen must draw exactly what it drew before — 58,754 of
-// 58,944 headwords, `leave` and `grudge` among them.
+// than one and the screen must draw exactly what it drew before — 58,770 of
+// 58,944 headwords, `leave` and `grudge` among them, and `hope` and `daisy`
+// since the grouping started comparing sounds rather than spellings.
 //
 // The pronunciation of whichever sense groupFor put first heads the entry and
 // the rest follow their own first sense, so no headword changes which sense

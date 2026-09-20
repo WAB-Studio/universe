@@ -690,3 +690,28 @@ test("RL-51: a headword with one pronunciation draws no block, and keeps its IPA
   });
   expect(order).toEqual(["verbo", "sustantivo"]);
 });
+
+// `lib/dictionary/pos-frequency.ts` scores "p" for proper noun and
+// `index-build.ts` maps it to `pn`, but the label rendered it «pronombre»:
+// 5,866 senses — `Sol`, `Tierra`, `Job`, `Facebook`, `OMS` — were drawn as
+// pronouns. The label is the only thing that was wrong; the category never
+// was.
+test("a proper noun is labelled a proper noun, and the word «pronombre» is drawn nowhere", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+
+  const assetResponse = page.waitForResponse(
+    (response) => response.url().includes(manifest.asset.path) && response.ok(),
+  );
+  await page.goto("/");
+  await assetResponse;
+  await page.waitForTimeout(1000);
+
+  const searchBox = page.getByRole("textbox", { name: messages.search.label });
+  await searchBox.fill("facebook");
+  await expect(page.getByRole("heading", { name: "facebook", exact: true })).toBeVisible({ timeout: 5000 });
+
+  await expect(page.getByText(messages.word.pos.pn, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("pronombre", { exact: true })).toHaveCount(0);
+});
