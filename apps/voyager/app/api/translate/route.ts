@@ -18,9 +18,16 @@ export const translateRequestSchema = z.object({
 // parameter the route accepts.
 const MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get";
 
+type MyMemoryMatch = {
+  translation?: string;
+  quality?: string;
+  match?: number;
+};
+
 type MyMemoryResponse = {
   responseData?: { translatedText?: string };
   responseStatus?: number | string;
+  matches?: MyMemoryMatch[];
 };
 
 // MyMemory's quota-exhausted warning always starts with this: matched as a
@@ -46,6 +53,35 @@ function isEcho(source: string, translated: string): boolean {
   return foldForComparison(translated) === foldForComparison(source);
 }
 
+// The one gate both `responseData.translatedText` and every `matches` entry
+// answer to: not empty, not the quota warning, not an echo of what was
+// asked. A candidate that fails any of these said nothing, whichever field
+// it came from.
+function isUsableTranslation(source: string, candidate: string | undefined): candidate is string {
+  return (
+    typeof candidate === "string" &&
+    candidate.length > 0 &&
+    !candidate.toUpperCase().startsWith(MYMEMORY_WARNING_PREFIX) &&
+    !isEcho(source, candidate)
+  );
+}
+
+// MyMemory's top pick can come back empty — measured live for "the cat sat
+// on the mat" — while `matches` still holds one that answers the sentence.
+// Ranked by `match`, not by array position: the reply is not contractually
+// sorted, and the highest-scoring usable entry is the one worth trusting.
+function bestAlternativeTranslation(source: string, matches: MyMemoryMatch[] | undefined): string | undefined {
+  let best: { translation: string; score: number } | undefined;
+  for (const candidate of matches ?? []) {
+    if (!isUsableTranslation(source, candidate.translation)) continue;
+    const score = candidate.match ?? 0;
+    if (!best || score > best.score) {
+      best = { translation: candidate.translation, score };
+    }
+  }
+  return best?.translation;
+}
+
 // The one function a provider swap replaces. MyMemory's anonymous tier caps
 // at roughly 5,000 words a day per caller IP (10,000 once `de` names a
 // registered email); past that cap it still answers HTTP 200, with
@@ -54,6 +90,16 @@ function isEcho(source: string, translated: string): boolean {
 // the warning's own prefix are checked, so that sentence never reaches a
 // reader as though it answered what they typed — the client only ever sees
 // a generic 502, never a rate-limit message to parse.
+//
+// A quota past the cap is a request-level failure and stops here, before
+// `matches` is even read: `responseStatus` already said the whole reply is
+// not to be trusted, so there is nothing in it worth falling back to.
+//
+// Below that, an unusable top pick is not the whole reply's failure — RL-49,
+// measured live: MyMemory's best-scoring match for "the cat sat on the mat"
+// is `translatedText: ""`, while a lower-scoring entry in `matches` answers
+// the sentence in full. That array is checked with the same filter before
+// this function gives up and lets the route answer 502.
 async function translateWithProvider(text: string): Promise<string> {
   const params = new URLSearchParams({ q: text, langpair: "en|es" });
   if (env.TRANSLATE_MYMEMORY_EMAIL) params.set("de", env.TRANSLATE_MYMEMORY_EMAIL);
@@ -70,16 +116,16 @@ async function translateWithProvider(text: string): Promise<string> {
   }
 
   const translated = payload.responseData?.translatedText;
-  if (typeof translated !== "string" || translated.length === 0) {
-    throw new Error("MyMemory returned no translation");
+  if (isUsableTranslation(text, translated)) {
+    return translated;
   }
-  if (translated.toUpperCase().startsWith(MYMEMORY_WARNING_PREFIX)) {
-    throw new Error("MyMemory returned a warning instead of a translation");
+
+  const alternative = bestAlternativeTranslation(text, payload.matches);
+  if (alternative) {
+    return alternative;
   }
-  if (isEcho(text, translated)) {
-    throw new Error("MyMemory returned the input unchanged");
-  }
-  return translated;
+
+  throw new Error("MyMemory returned no usable translation");
 }
 
 export async function POST(request: Request): Promise<Response> {
