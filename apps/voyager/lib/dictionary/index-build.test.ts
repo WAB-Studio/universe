@@ -6,11 +6,22 @@
 // really produce — the senses themselves are invented, never the shipped
 // corpus, except where a test names a headword `pos-frequency.ts` scores
 // (`row`, `leave`) to put that measured order under the grouping.
+//
+// The last two tests are the exception on purpose: RL-51's claim is
+// exhaustive — *every* headword carrying more than one pronunciation draws
+// each of them in one run — and a claim over the corpus can only be proved
+// over the corpus. They drive the shipped asset through the same
+// `buildIndex`, and they derive the set they check instead of carrying a
+// list: that census has been written down wrong twice already
+// (docs/voyager/SPEC.md RL-51, "Measure this on the normalised headword").
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
 import { buildIndex, groupFor, pronunciationBlocks, type DictionaryIndex, type Sense } from "./index-build";
-import type { PartOfSpeech, RawEntry } from "./format";
+import type { DictionaryPayload, PartOfSpeech, RawEntry } from "./format";
+import manifest from "../../public/dictionary/manifest.json";
 
 function entry(
   headword: string,
@@ -122,7 +133,7 @@ test("RL-51: no sense is lost or repeated by the gathering — the blocks hold t
   for (const sense of senses) assert.ok(gathered.includes(sense), sense.translations[0]);
 });
 
-// --- the 59,148 headwords that must not move ---
+// --- the 58,754 headwords that must not move ---
 
 test("RL-51: one pronunciation is no grouping — `leave` answers with no block at all", () => {
   // `pos-frequency.ts` scores `leave` "vn": «dejar» leads «permiso», the
@@ -175,4 +186,94 @@ test("RL-51: two pronunciations beside a sense carrying none gather into three b
     ["/ˈkæn/", ["enlatar", "lata"]],
     [null, ["CAN"]],
   ]);
+});
+
+// --- the shipped asset, every headword of it ---
+
+// The asset the app really installs, found the way `check-dictionary.ts`
+// finds it: the manifest names the file. The payload is cast, not parsed —
+// 64,258 entries through a Zod schema buys nothing for a question about
+// order, and `buildIndex` is the thing under test either way.
+function shippedIndex(): DictionaryIndex {
+  const assetPath = path.join(__dirname, "../../public", manifest.asset.path);
+  const payload = JSON.parse(readFileSync(assetPath, "utf8")) as DictionaryPayload;
+  return buildIndex(payload);
+}
+
+// Everything RL-51 promises about one headword, read off the sequence the
+// screen would really draw — the blocks flattened back into senses — rather
+// than off the block structure that produced it. Returns what is wrong with
+// the entry, or null when nothing is.
+function defectOf(index: DictionaryIndex, headword: string): string | null {
+  const group = groupFor(index, headword);
+  if (group === null) return "no group at all";
+  const senses = group.senses;
+  const named = new Set(senses.filter((sense) => sense.ipa !== null).map((sense) => sense.ipa));
+  const blocks = pronunciationBlocks(senses);
+
+  if (named.size < 2) return blocks === null ? null : "grouped on one pronunciation";
+  if (blocks === null) return "carries more than one pronunciation and did not group";
+
+  const drawn = blocks.flatMap((block) => block.senses);
+  if (drawn.length !== senses.length) return `${senses.length} senses drawn as ${drawn.length}`;
+  if (senses.some((sense) => !drawn.includes(sense))) return "a sense was lost or repeated";
+  if (drawn[0] !== senses[0]) return "the entry changed which sense leads it";
+
+  // Contiguity: a pronunciation opens exactly once down the entry. Counted
+  // over the drawn senses themselves, so a block per sense — the shape the
+  // defect had before RL-51 — reads as more runs than pronunciations.
+  const runs = drawn.filter((sense, at) => at === 0 || sense.ipa !== drawn[at - 1].ipa).length;
+  const pronunciations = new Set(drawn.map((sense) => sense.ipa)).size;
+  if (runs !== pronunciations) return `${pronunciations} pronunciations drawn in ${runs} runs`;
+
+  for (const block of blocks) {
+    const places = block.senses.map((sense) => senses.indexOf(sense));
+    if (places.some((place, at) => at > 0 && place < places[at - 1])) return "a block reordered its own senses";
+  }
+
+  // docs/voyager/SPEC.md RL-51: the block no pronunciation heads is drawn
+  // last. `can` and `pace` are the only two entries that have one.
+  const nameless = blocks.findIndex((block) => block.ipa === null);
+  if (nameless !== -1 && nameless !== blocks.length - 1) return "the block with no pronunciation is not last";
+  return null;
+}
+
+test("RL-51: every headword of the shipped asset draws each of its pronunciations in one run", () => {
+  const index = shippedIndex();
+
+  const defects = index.sortedHeadwords
+    .map((headword) => ({ headword, defect: defectOf(index, headword) }))
+    .filter((audited): audited is { headword: string; defect: string } => audited.defect !== null);
+
+  assert.deepEqual(
+    defects.slice(0, 10),
+    [],
+    `${defects.length} of ${index.sortedHeadwords.length} headwords draw wrong`,
+  );
+});
+
+test("RL-51: the census docs/voyager/SPEC.md records is the one the app's own index produces", () => {
+  const index = shippedIndex();
+  assert.equal(index.sortedHeadwords.length, manifest.counts.headwords);
+
+  let multiple = 0;
+  let interleaved = 0;
+  let nameless = 0;
+  for (const headword of index.sortedHeadwords) {
+    const group = groupFor(index, headword);
+    assert.ok(group !== null);
+    const blocks = pronunciationBlocks(group.senses);
+    if (blocks === null) continue;
+    multiple++;
+    if (blocks.some((block) => block.ipa === null)) nameless++;
+    // Interleaved: the gathering really moved a sense, which is the defect
+    // RL-51 names — the rest were contiguous before it ran.
+    const drawn = blocks.flatMap((block) => block.senses);
+    if (drawn.some((sense, at) => sense !== group.senses[at])) interleaved++;
+  }
+
+  assert.equal(multiple, 190, "headwords carrying more than one named pronunciation");
+  assert.equal(interleaved, 26, "of those, the ones whose senses the gathering really moves");
+  assert.equal(nameless, 2, "of those, the ones carrying a sense with no pronunciation (`can`, `pace`)");
+  assert.equal(defectOf(index, "row"), null);
 });

@@ -298,8 +298,9 @@ function PosSegments({
 // two words wearing one spelling: its `/ɹaʊ/` senses used to sit at
 // positions three and five of five.
 //
-// One pronunciation is no grouping — 59,148 of 59,253 headwords, `leave`
-// and `grudge` among them — and draws exactly what it drew before, through
+// One pronunciation is no grouping — 58,754 of the 58,944 indexed
+// headwords, `leave` and `grudge` among them — and draws exactly what it
+// drew before, through
 // the same branch the breakdown takes. `compact` never groups: that variant
 // carries no IPA at all (docs/voyager/DESIGN.md "A word block on
 // `SinEntradaFrase` carries its translations alone"), so a head there would

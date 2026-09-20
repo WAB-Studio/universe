@@ -656,7 +656,7 @@ test("a headword replaced mid-flight never lands its text on the word that repla
   await expect(page.getByText(DOG_TEXT.example.en)).toHaveCount(0);
 });
 
-// RL-51 groups only the 105 headwords carrying more than one pronunciation.
+// RL-51 groups only the 190 headwords carrying more than one pronunciation.
 // `leave` carries one, so it is the control: RL-43's own example, the order
 // no fixed rank can give — «dejar» before «permiso» — drawn with no block
 // head and with the IPA still on each part-of-speech label row.

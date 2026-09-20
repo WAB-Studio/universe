@@ -75,24 +75,11 @@ test("RL-51: `row` answers as two pronunciation blocks, /rɑː/ first, its fight
   await expect(blocks.nth(1)).not.toContainText("remo");
 });
 
-// The eleven the asset's own census names (docs/voyager/SPEC.md RL-51): the
-// headwords whose senses alternate between pronunciations once sorted by
-// part of speech. A pronunciation drawn twice is a pronunciation still split
-// down the entry, which is the whole defect.
-const INTERLEAVED = ["bow", "can", "char", "content", "do", "flush", "lead", "one", "row", "second", "tear"];
-
-test("RL-51: every interleaved headword draws each of its pronunciations once, contiguous", async ({ page }) => {
-  await deleteTranslator(page);
-  await loadDictionary(page);
-
-  for (const word of INTERLEAVED) {
-    await answer(page, word);
-    const heads = await blockHeads(page);
-    expect(heads.filter((head) => head !== ""), word).not.toHaveLength(0);
-    expect(heads.length, word).toBeGreaterThan(1);
-    expect(new Set(heads).size, word).toBe(heads.length);
-  }
-});
+// The exhaustive claim — every one of the 190 headwords carrying more than
+// one pronunciation draws each of them in one run — is decided by
+// `groupFor` and `pronunciationBlocks`, with no browser in it, and is proved
+// over the whole asset in `lib/dictionary/index-build.test.ts`. What is left
+// here is what only a browser can answer: what the screen makes of it.
 
 // `can` is one of two headwords (the other is `pace`) whose entry gathers a
 // block with no pronunciation to name it: normalising folds the proper noun
