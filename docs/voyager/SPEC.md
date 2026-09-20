@@ -100,13 +100,21 @@ this gets built, and no schema, table or column is "prepared for" it.
   «remo, fila, remar» — and `/ɹaʊ/` — «pelea, pelear» — as two blocks, instead of leaving the two
   `/ɹaʊ/` senses at positions three and five of five for a reader who met «a row» as a fight. It is
   answered from the device and touches the network on no keystroke.
-  - Measured 2026-09-20 against the shipped asset: **105 of 59,253 headwords carry more than one
-    distinct IPA**, and **11 of those interleave** — their senses alternate between pronunciations
-    once sorted by part of speech. They are `bow`, `can`, `char`, `content`, `do`, `flush`, `lead`,
-    `one`, `row`, `second` and `tear`: the homographs a reader of English actually meets.
-  - **In all 105, every sense carries an IPA — none is null.** No block is ever drawn without a
-    pronunciation to name it, so there is no orphan group to design a state for.
-  - The other 59,148 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
+  - Measured 2026-09-20 through the app's own `buildIndex` and `groupFor`: of **58,944** indexed
+    headwords, **190 carry more than one named pronunciation**, and **26 of those interleave** in the
+    order the screen really draws, after RL-43's sort. They are `a`, `bass`, `bow`, `desert`,
+    `earth`, `english`, `facebook`, `flush`, `frank`, `ham`, `italic`, `job`, `lead`, `less`, `mass`,
+    `minute`, `mow`, `mush`, `parmesan`, `polish`, `renaissance`, `row`, `second`, `subject`, `sun`
+    and `tear`: the homographs a reader of English actually meets.
+  - **Measure this on the normalised headword and on `groupFor`'s order, never on the raw asset.**
+    The asset's own keys are case-sensitive and its own order is not the screen's: measured that way
+    the same census reads 105, 11 and 0, and all three are wrong for this requirement. The app
+    lowercases before it indexes, so `CAN` and `can` are one entry.
+  - **Two headwords carry a sense with no IPA at all: `can` and `pace`.** Both are acronyms
+    normalisation folds into the word — `CAN`, and `PACE` for the Parliamentary Assembly of the
+    Council of Europe. They gather into a block no pronunciation heads, drawn last. Decided by the
+    user 2026-09-20 over not grouping those two at all, and over dropping the acronym outright.
+  - The other 58,754 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
     not retired — `grudge` and `leave`, its own examples, carry one pronunciation each.
   - **Which block leads is not a new judgement.** The pronunciation of the sense RL-43 already put
     first heads the entry, so no headword changes which sense leads it; the scattered ones are only

@@ -1362,9 +1362,9 @@ drawn today. The judgement adds nothing to the screen when it says yes.
 definitions — and asked whether the model already generating text should order the lists and fold
 them away. **Measured first, and the answer moved.**
 
-**`row` is not the shape the app answers.** Of 59,253 headwords, **54,702 carry one single sense
-(92.3 %)** and **50,645 carry three translations or fewer (85.5 %)**. Only **284 (0.48 %)** carry
-fifteen or more, and **30 (0.05 %)** carry twenty-five. A fold spent on the screen in the screenshot
+**`row` is not the shape the app answers.** Of the app's **58,944** indexed headwords, **54,161
+carry one single sense (91.9 %)** and **50,288 carry three translations or fewer (85.3 %)**. Only
+**287 (0.49 %)** carry fifteen or more, and **30 (0.05 %)** carry twenty-five. A fold spent on the screen in the screenshot
 is a tap charged to the 92 %.
 
 **What makes that screen long is not padding.** `remo`, `fila`, `pelea`, `remar`, `pelear` are five
@@ -1383,23 +1383,42 @@ senses land at **positions three and five of five**: a reader who met «a row» 
 whole screen twice. Grouping by pronunciation first puts them together and costs nothing — the IPA
 is already in the asset, no table, no call, no connection.
 
-**What it touches, measured 2026-09-20 against the shipped asset.**
+**What it touches, measured 2026-09-20 through `buildIndex` and `groupFor` — the app's own path.**
 
 | | |
 |---|---|
-| Headwords with more than one distinct IPA | **105** of 59,253 |
-| Of those, senses interleaved across pronunciations | **11** |
-| Of those 105, any sense carrying a null IPA | **0** |
+| Indexed headwords | **58,944** |
+| Carrying more than one named pronunciation | **190** |
+| Of those, interleaved in the order the screen draws | **26** |
+| Of those, carrying a sense with no IPA at all | **2** — `can`, `pace` |
 
-The eleven are `bow`, `can`, `char`, `content`, `do`, `flush`, `lead`, `one`, `row`, `second` and
-`tear` — the homographs a reader of English actually meets. The zero is what makes the grouping
-safe: no block is ever drawn without a pronunciation to name it, so there is no orphan bucket state
-to design.
+The twenty-six are `a`, `bass`, `bow`, `desert`, `earth`, `english`, `facebook`, `flush`, `frank`,
+`ham`, `italic`, `job`, `lead`, `less`, `mass`, `minute`, `mow`, `mush`, `parmesan`, `polish`,
+`renaissance`, `row`, `second`, `subject`, `sun` and `tear` — the homographs a reader of English
+actually meets.
+
+**The first census of this was wrong, and the way it was wrong is the lesson.** It was taken over
+the asset's raw entries, keyed on the headword as written and read in the order the file stores
+them. It returned **105, 11 and 0**, and it went into this file and into `SPEC.md` as fact. The app
+does neither of those things: `normaliseHeadword` lowercases before `buildIndex` keys anything, so
+`CAN` and `can` are one headword, and `groupFor` sorts by RL-43 before the screen sees a sense. On
+the app's own terms the numbers are **190, 26 and 2**. The cheap census missed `bass`, `desert`,
+`minute`, `polish` and `subject` — the five best examples the change exists for. **Measure a claim
+about a screen through the function that feeds that screen.**
+
+**The zero was the costliest of the three.** It was written here as the reason no orphan state
+needed designing, and a worker was dispatched on it. The real answer is two: `can` and `pace` each
+carry an acronym — `CAN`, and `PACE` for the Parliamentary Assembly of the Council of Europe — that
+normalisation folds into the word and that has no IPA of its own. **They gather into a block no
+pronunciation heads, drawn last. Decided by the user 2026-09-20**, over not grouping those two
+entries at all, and over dropping the acronym the way the one-character query already drops `b.`.
+That second option stays available and is a wider change than this one: it would touch which entries
+the dictionary admits, not how one screen draws them.
 
 **RL-43 keeps its job, narrowed.** Frequency still orders the parts of speech; it now orders them
 **inside** a pronunciation instead of across the entry. RL-47's suffix clause still outranks both.
 Nothing is retired: RL-43's own examples — `grudge`, `leave` — carry one pronunciation each and
-answer exactly as they answer today, as do the other 59,148 headwords.
+answer exactly as they answer today, as do the other 58,754 headwords.
 
 **The fold was not taken, and neither was hiding what the model prunes. Decided by the user
 2026-09-20.** The English definition keeps drawing open (2026-09-10 stands), and a pruned gloss
@@ -1420,7 +1439,7 @@ board.**
   pronunciation, so nothing in the asset knows whether «remar» beats «pelear». The consequence is
   deliberate — **no headword changes which sense leads it**; the scattered ones are only gathered.
   Sizing the blocks by sense count was offered and refused: it measures the entry, not the use.
-  Asking the model was offered and refused: 105 calls to settle an order no reader asked for, and it
+  Asking the model was offered and refused: 190 calls to settle an order no reader asked for, and it
   would take the answer off the device.
 - **The block head is the IPA alone**, in the metadata face — Plex Sans 15px, muted — and the
   part-of-speech label underneath stops carrying an IPA of its own, because the head above already
