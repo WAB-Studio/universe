@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { clientKey } from "./client-key";
+import { clientKey, clientKeyFromAddress } from "./client-key";
 
 function request(headers: Record<string, string>): Request {
   return new Request("http://localhost/api/word/unlisted", { headers });
@@ -68,4 +68,23 @@ test("x-forwarded-for wins over x-real-ip when both are present", () => {
   );
   const forwardedOnly = clientKey(request({ "x-forwarded-for": "203.0.113.9" }), "a-real-salt-value");
   assert.equal(both, forwardedOnly);
+});
+
+// Every assertion above is relational — same in, same out; different in,
+// different out — so all ten of them stay green if the algorithm or the
+// order of concatenation changes. Measured 2026-09-20: sha256 to sha512
+// with `address:salt` for `salt:address` passed 107/107, and
+// `check-admission.ts` passed 17/17 too, because it derives the key it
+// expects from this same function.
+//
+// The key is not an opaque value: it is the primary identity of a row in
+// `reading.client_spend`. A formula that changes orphans every quota
+// already banked and hands every device a fresh allowance, in silence.
+// This pins the bytes, so changing them has to be a decision someone took
+// on purpose rather than one a refactor took for them.
+test("the formula itself is fixed, because banked quotas are keyed on it", () => {
+  assert.equal(
+    clientKeyFromAddress("203.0.113.7", "a-fixed-salt-for-this-test"),
+    "694782ef69512ca7ba99a28e1e471529d5fd0a3702c18238bce72a3825b6ac31",
+  );
 });
