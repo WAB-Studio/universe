@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 
-import type { Sense } from "@/lib/dictionary/index-build";
+import { ipaKey, pronunciationBlocks, type Sense } from "@/lib/dictionary/index-build";
 import type { WordAnswer } from "@/lib/dictionary/lookup";
 import { speak, speechSupported } from "@/lib/speech/speak";
 import {
@@ -122,7 +122,22 @@ function getServerSnapshot(): boolean {
 // never inferred from its name or version — so a browser with no
 // `speechSynthesis` shows no control at all, rather than one that does
 // nothing when pressed.
-function SpeakButton({ headword, t }: { headword: string; t: ReturnType<typeof useTranslations> }) {
+//
+// `lib/speech/speak.ts` is handed the spelling, so the browser itself picks
+// which pronunciation of a grouped entry comes out. The control therefore
+// names the one it really speaks — the entry's leading block, drawn
+// directly under the headword — instead of claiming two sounds and offering
+// one unnamed (RL-51). A second control was refused: the voice takes the
+// spelling, so both would sound alike.
+function SpeakButton({
+  headword,
+  ipa,
+  t,
+}: {
+  headword: string;
+  ipa: string | null;
+  t: ReturnType<typeof useTranslations>;
+}) {
   const supported = useSyncExternalStore(subscribeNever, speechSupported, getServerSnapshot);
 
   if (!supported) return null;
@@ -134,7 +149,7 @@ function SpeakButton({ headword, t }: { headword: string; t: ReturnType<typeof u
       variant="ghost"
       color="gray"
       tap={44}
-      aria-label={t("listen", { headword })}
+      aria-label={ipa === null ? t("listen", { headword }) : t("listenPronunciation", { headword, ipa })}
       onClick={() => speak(headword)}
     >
       <SpeakerGlyph />
@@ -142,12 +157,25 @@ function SpeakButton({ headword, t }: { headword: string; t: ReturnType<typeof u
   );
 }
 
+// The IPA heading the entry's first pronunciation block, or null when the
+// entry draws no block at all (58,773 of 58,944 headwords) or when that
+// first block is the headless one — which only `can` and `pace` carry, and
+// never in first place. The voice control and the generated example are
+// both named from here, so neither can name a sound the screen does not
+// lead with.
+function leadPronunciation(senses: readonly Sense[]): string | null {
+  return pronunciationBlocks(senses)?.[0].ipa ?? null;
+}
+
 // One sense's own body: every translation on its own line, its English
 // definition drawn open beneath its own label when the entry carries one
 // (docs/voyager/DESIGN.md "The English definition draws open, always"), and
-// its own IPA only when it differs from the one already drawn on
-// its segment's label row — repeating an identical IPA on every sense would
-// say nothing a reader does not already have. `compact` drops the IPA and
+// its own IPA only when it is a different sound from the one already drawn
+// on its segment's label row — repeating an identical IPA on every sense
+// would say nothing a reader does not already have. Compared through
+// `ipaKey`, the same key the grouping runs on: two notations of one sound
+// are not two sounds, which used to cost `god`, `majesty` and `mass` a dead
+// line each (`/ɡɑ(d)/` over `/ɡɑd/`, `/ˈmæs/` over `/mæs/`). `compact` drops the IPA and
 // the definition (docs/voyager/DESIGN.md "A word block on `SinEntradaFrase`
 // carries its translations alone"): only `NoEntryAnswer`'s per-word
 // breakdown ever sets it.
@@ -162,7 +190,8 @@ function SenseDetail({
   compact: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const ownIpa = !compact && sense.ipa !== null && sense.ipa !== segmentIpa ? sense.ipa : null;
+  const ownSound = sense.ipa !== null && (segmentIpa === null || ipaKey(sense.ipa) !== ipaKey(segmentIpa));
+  const ownIpa = !compact && ownSound ? sense.ipa : null;
 
   return (
     <Flex direction="column" gap="2">
@@ -207,10 +236,15 @@ function SenseDetail({
 function PosSegment({
   segment,
   compact,
+  ipaHeaded,
   t,
 }: {
   segment: SenseSegment;
   compact: boolean;
+  // True inside a pronunciation block (RL-51): the block's head already
+  // named the IPA, so the label row stops carrying one of its own
+  // (docs/voyager/DESIGN.md "The pronunciation groups the entry").
+  ipaHeaded: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const segmentIpa = segment.senses[0].ipa;
@@ -219,7 +253,7 @@ function PosSegment({
     <Flex direction="column" gap="3">
       <Flex align="center" gap="2">
         <PosLabel>{t(`pos.${segment.pos}`)}</PosLabel>
-        {!compact && segmentIpa !== null && (
+        {!compact && !ipaHeaded && segmentIpa !== null && (
           // IPA runs past 120 characters with no space to break on, and it is
           // metadata beside the headword, not the headword itself — one
           // clamped line reads better than four wrapped ones. `PosLabel` has
@@ -259,15 +293,18 @@ function segmentByPos(senses: readonly Sense[]): SenseSegment[] {
   return segments;
 }
 
-// A group of part-of-speech segments ruled apart with a hairline, one per
-// headword or inflected form.
-function SenseGroup({
+// Part-of-speech segments ruled apart with a hairline: the whole of a
+// headword's senses when it carries one pronunciation, one block's share of
+// them when it carries several.
+function PosSegments({
   senses,
   compact,
+  ipaHeaded,
   t,
 }: {
   senses: readonly Sense[];
   compact: boolean;
+  ipaHeaded: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const segments = segmentByPos(senses);
@@ -277,7 +314,58 @@ function SenseGroup({
       {segments.map((segment, index) => (
         <Flex direction="column" gap="3" key={index}>
           {index > 0 && <Separator size="4" />}
-          <PosSegment segment={segment} compact={compact} t={t} />
+          <PosSegment segment={segment} compact={compact} ipaHeaded={ipaHeaded} t={t} />
+        </Flex>
+      ))}
+    </Flex>
+  );
+}
+
+// A group of part-of-speech segments, one per headword or inflected form —
+// gathered first into one block per pronunciation when the group carries
+// more than one (RL-51, board `PalabraPronunciacionOscuroMovil`). `row` is
+// two words wearing one spelling: its `/ɹaʊ/` senses used to sit at
+// positions three and five of five.
+//
+// One pronunciation is no grouping — 58,754 of the 58,944 indexed
+// headwords, `leave` and `grudge` among them — and draws exactly what it
+// drew before, through
+// the same branch the breakdown takes. `compact` never groups: that variant
+// carries no IPA at all (docs/voyager/DESIGN.md "A word block on
+// `SinEntradaFrase` carries its translations alone"), so a head there would
+// name a pronunciation nothing under it repeats.
+function SenseGroup({
+  senses,
+  compact,
+  t,
+}: {
+  senses: readonly Sense[];
+  compact: boolean;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const blocks = compact ? null : pronunciationBlocks(senses);
+
+  if (blocks === null) {
+    return <PosSegments senses={senses} compact={compact} ipaHeaded={false} t={t} />;
+  }
+
+  return (
+    <Flex direction="column" gap="4">
+      {blocks.map((block, index) => (
+        <Flex direction="column" gap="3" key={index} data-pronunciation-block={block.ipa ?? ""}>
+          {index > 0 && <Separator size="4" />}
+          {/* The block head is the IPA alone — no headword repeated, no
+              number — one step up from the sense IPA it replaces, in the
+              muted metadata tone (docs/voyager/DESIGN.md). The block that
+              gathers senses carrying no IPA draws no head: `can` and `pace`
+              are the only two entries that reach it, each through a proper
+              noun normalising into the word. */}
+          {block.ipa !== null && (
+            <Text size="3" muted truncate>
+              {block.ipa}
+            </Text>
+          )}
+          <PosSegments senses={block.senses} compact={compact} ipaHeaded t={t} />
         </Flex>
       ))}
     </Flex>
@@ -366,6 +454,10 @@ export function SenseList({
   const t = useTranslations("word");
   const tSearch = useTranslations("search");
   const compact = variant === "compact";
+  // Null on every compact call: the breakdown groups nothing, so it names
+  // nothing either (docs/voyager/DESIGN.md "A word block on
+  // `SinEntradaFrase` carries its translations alone").
+  const exactLead = !compact && answer.exact !== null ? leadPronunciation(answer.exact.senses) : null;
 
   const hasAnswer = answer.exact !== null || answer.viaInflection.length > 0;
   if (!hasAnswer) {
@@ -394,10 +486,24 @@ export function SenseList({
         <Flex direction="column" gap="3">
           <Flex align="center" gap="1">
             {showExactHeadword && <BlockHeading word={answer.exact.headword} wordHref={wordHref} />}
-            {!compact && <SpeakButton headword={answer.exact.headword} t={t} />}
+            {!compact && <SpeakButton headword={answer.exact.headword} ipa={exactLead} t={t} />}
           </Flex>
           <SenseGroup senses={answer.exact.senses} compact={compact} t={t} />
           {!compact && generated && <GeneratedText state={generated} />}
+          {/* RL-51: the example is decoration resolved from the spelling
+              alone (RL-42), so it lands under whichever block the entry
+              draws last and reads as that block's own — `row` closed with
+              «Me gusta remar el bote» beneath /ɹaʊ/, `tear` with «no rasgar
+              el vestido» beneath /tiə/, 5 of 5 measured. The foot line says
+              which pronunciation it is about: the entry's leading one, the
+              sense the model writes for and the sound «Escuchar» speaks. An
+              entry that draws no block reads unchanged — there is no other
+              block for it to be mistaken for. */}
+          {!compact && generated?.kind === "resolved" && exactLead !== null && (
+            <Text size="1" color="gray" data-generated-pronunciation={exactLead}>
+              {t("examplePronunciation", { ipa: exactLead })}
+            </Text>
+          )}
         </Flex>
       )}
 
@@ -422,7 +528,7 @@ export function SenseList({
                       </PosLabel>
                       <Flex align="center" gap="1">
                         <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
-                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                        {!compact && <SpeakButton headword={hit.lemma} ipa={leadPronunciation(hit.group.senses)} t={t} />}
                       </Flex>
                     </Flex>
                     <SenseGroup senses={hit.group.senses} compact={compact} t={t} />
@@ -446,7 +552,7 @@ export function SenseList({
                 {showExactHeadword && (
                   <BlockHeading word={answer.viaInflection[0].surface} wordHref={wordHref} />
                 )}
-                {!compact && <SpeakButton headword={answer.viaInflection[0].surface} t={t} />}
+                {!compact && <SpeakButton headword={answer.viaInflection[0].surface} ipa={null} t={t} />}
               </Flex>
               {!compact && networkAnswer && (
                 <NetworkAnswer state={networkAnswer} surface={answer.viaInflection[0].surface} />
@@ -462,7 +568,7 @@ export function SenseList({
                       <PosLabel muted>{t("formOf", { surface: hit.surface, lemma: hit.lemma })}</PosLabel>
                       <Flex align="center" gap="1">
                         <BlockHeading word={hit.lemma} wordHref={wordHref} headwordSize="offer" />
-                        {!compact && <SpeakButton headword={hit.lemma} t={t} />}
+                        {!compact && <SpeakButton headword={hit.lemma} ipa={leadPronunciation(hit.group.senses)} t={t} />}
                       </Flex>
                     </Flex>
                     <SenseGroup senses={hit.group.senses} compact={compact} t={t} />

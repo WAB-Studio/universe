@@ -655,3 +655,63 @@ test("a headword replaced mid-flight never lands its text on the word that repla
   await expect(page.getByText(CAT_TEXT.example.en)).toBeVisible();
   await expect(page.getByText(DOG_TEXT.example.en)).toHaveCount(0);
 });
+
+// RL-51 groups only the 190 headwords carrying more than one pronunciation.
+// `leave` carries one, so it is the control: RL-43's own example, the order
+// no fixed rank can give — «dejar» before «permiso» — drawn with no block
+// head and with the IPA still on each part-of-speech label row.
+test("RL-51: a headword with one pronunciation draws no block, and keeps its IPA on the label row", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+
+  const assetResponse = page.waitForResponse(
+    (response) => response.url().includes(manifest.asset.path) && response.ok(),
+  );
+  await page.goto("/");
+  await assetResponse;
+  await page.waitForTimeout(1000);
+
+  const searchBox = page.getByRole("textbox", { name: messages.search.label });
+  await searchBox.fill("leave");
+  await expect(page.getByRole("heading", { name: "leave", exact: true })).toBeVisible({ timeout: 5000 });
+
+  await expect(page.locator("main [data-pronunciation-block]")).toHaveCount(0);
+
+  // One IPA per label row, both of them: what a block head would have
+  // replaced with a single line above the two.
+  await expect(page.getByText("/liv/", { exact: true })).toHaveCount(2);
+
+  const order = await page.evaluate(() => {
+    const labels = Array.from(document.querySelectorAll("main span"))
+      .map((node) => node.textContent)
+      .filter((text) => text === "verbo" || text === "sustantivo");
+    return labels;
+  });
+  expect(order).toEqual(["verbo", "sustantivo"]);
+});
+
+// `lib/dictionary/pos-frequency.ts` scores "p" for proper noun and
+// `index-build.ts` maps it to `pn`, but the label rendered it «pronombre»:
+// 5,866 senses — `Sol`, `Tierra`, `Job`, `Facebook`, `OMS` — were drawn as
+// pronouns. The label is the only thing that was wrong; the category never
+// was.
+test("a proper noun is labelled a proper noun, and the word «pronombre» is drawn nowhere", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+
+  const assetResponse = page.waitForResponse(
+    (response) => response.url().includes(manifest.asset.path) && response.ok(),
+  );
+  await page.goto("/");
+  await assetResponse;
+  await page.waitForTimeout(1000);
+
+  const searchBox = page.getByRole("textbox", { name: messages.search.label });
+  await searchBox.fill("facebook");
+  await expect(page.getByRole("heading", { name: "facebook", exact: true })).toBeVisible({ timeout: 5000 });
+
+  await expect(page.getByText(messages.word.pos.pn, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("pronombre", { exact: true })).toHaveCount(0);
+});

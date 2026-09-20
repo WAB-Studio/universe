@@ -2070,3 +2070,33 @@ cualquier `next build`, lo borra. `.next` no está versionado, así que no deja 
 
 Cuesta minutos cada vez que alguien lo lee como un rojo suyo: lo tropezaron el worker del módulo 8,
 su validador y el rebase de RL-49.
+
+## Un censo sobre el asset crudo no dice lo que la pantalla dibuja
+
+Medido el 2026-09-20, escribiendo el contrato de `RL-51`. La misma pregunta — cuántas cabeceras
+llevan más de una pronunciación — da dos respuestas según por dónde se mida:
+
+| | sobre `entries` del asset | por `buildIndex` + `groupFor` |
+|---|---|---|
+| cabeceras | 59.253 | **58.944** |
+| con >1 IPA | 105 | **190** |
+| entreveradas | 11 | **26** |
+| con una acepción sin IPA | 0 | **2** (`can`, `pace`) |
+
+Dos diferencias lo explican, y las dos están en el camino que la pantalla recorre de verdad:
+
+- **`normaliseHeadword` minusculiza antes de que `buildIndex` indexe nada**
+  (`lib/dictionary/format.ts:60`). `CAN` y `can` son una cabecera, no dos. De ahí salen las
+  siglas sin IPA que el censo crudo jura que no existen.
+- **`groupFor` ordena por `RL-43` antes de que se dibuje una acepción.** «Entreverado» es una
+  propiedad del orden de la pantalla, y el asset se guarda en otro.
+
+**Lo que costó:** las tres cifras entraron en `docs/voyager/SPEC.md` y en `docs/voyager/DESIGN.md`
+como hechos medidos, y un worker salió despachado sobre la de en medio — «ninguna acepción trae el
+IPA en nulo, así que no construyas estado huérfano». Sí lo traen, dos. Lo encontró el worker al
+implementarlo, no la revisión. El censo barato además se dejó `bass`, `desert`, `minute`, `polish` y
+`subject`: los cinco mejores ejemplos de la palabra que el cambio existe para arreglar.
+
+**La regla:** mide la afirmación sobre una pantalla por la función que alimenta esa pantalla. Si la
+afirmación habla de cabeceras, pásala por el índice; si habla de orden, pásala por el comparador.
+Un `JSON.parse` del asset y un `Map` a mano responden otra pregunta parecida y más barata.
