@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
@@ -47,6 +47,16 @@ async function exposeDictionaryWorker(page: Page): Promise<void> {
 // tests' own clock — long enough to prove no timer fires — not the
 // component's.
 const SUGGESTIONS_SETTLE_MS = 900;
+
+// A gloss now lives inside one comma-joined translation line
+// (docs/voyager/DESIGN.md "The translations are one line, separated by
+// commas"), so it is no longer a text node of its own: this finds it
+// bounded by the line's own start, end or comma, never a longer gloss that
+// merely contains it.
+function glossLocator(page: Page, gloss: string): Locator {
+  const escaped = gloss.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return page.getByText(new RegExp(`(^|, )${escaped}(,|$)`));
+}
 
 type WorkerRequestShape = Extract<WorkerRequest, { kind: "lookup" }>;
 // The one response kind this probe listens for; `status` carries no `id`
@@ -517,7 +527,7 @@ test("a one-character query answers only `a` and `i`, never the other ten single
   // "a" is one of the two: its own entry answers, translations included.
   await searchBox.fill("a");
   await expect(page.getByRole("heading", { name: "a", exact: true })).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("una", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "una")).toBeVisible();
   await expect(suggestionsLabel).toHaveCount(0);
 
   // "I" is the other: it normalises to "i" and answers with "yo".
@@ -563,12 +573,12 @@ test("RL-40: a word's own entry answers first, and a plausible inflection is off
   const leaveHeading = page.getByRole("heading", { name: "leave", exact: true });
   await expect(leftHeading).toBeVisible({ timeout: 5000 });
   // The own entry's own senses, above any offer.
-  await expect(page.getByText("izquierda", { exact: true }).first()).toBeVisible();
+  await expect(glossLocator(page, "izquierda").first()).toBeVisible();
   // The offer's own label and heading, naming both the surface and the
   // lemma it also inflects from.
   await expect(page.getByText('"left" también es una forma de "leave"', { exact: false })).toBeVisible();
   await expect(leaveHeading).toBeVisible();
-  await expect(page.getByText("dejar", { exact: true }).first()).toBeVisible();
+  await expect(glossLocator(page, "dejar").first()).toBeVisible();
   // `left`'s own entry sits above the offer in document order — it answers
   // first, the offer never replaces it.
   const order = await page.evaluate(() => {

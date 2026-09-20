@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
@@ -48,6 +48,16 @@ async function answer(page: Page, word: string): Promise<void> {
   await expect(page.getByRole("heading", { name: word, exact: true })).toBeVisible({ timeout: 5000 });
 }
 
+// A gloss now lives inside one comma-joined translation line
+// (docs/voyager/DESIGN.md "The translations are one line, separated by
+// commas"), so it is no longer a text node of its own: this finds it
+// bounded by the line's own start, end or comma, never a longer gloss that
+// merely contains it (`pelea` inside `pelear`).
+function glossLocator(page: Page, gloss: string): Locator {
+  const escaped = gloss.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return page.getByText(new RegExp(`(^|, )${escaped}(,|$)`));
+}
+
 // RL-51, board `PalabraPronunciacionOscuroMovil`: `row` is two words wearing
 // one spelling. Sorted by part of speech alone, its two `/ɹaʊ/` senses land
 // at positions three and five of five — a reader who met «a row» as a fight
@@ -69,7 +79,7 @@ test("RL-51: `row` answers as two pronunciation blocks, /rɑː/ first, its fight
   // Every sense still answers, and the two `/ɹaʊ/` ones now sit under their
   // own head rather than either side of the verbs.
   for (const translation of ["remo", "fila", "remar", "pelea", "pelear"]) {
-    await expect(page.getByText(translation, { exact: true }).first()).toBeVisible();
+    await expect(glossLocator(page, translation).first()).toBeVisible();
   }
 
   const blocks = page.locator("main [data-pronunciation-block]");
@@ -77,6 +87,27 @@ test("RL-51: `row` answers as two pronunciation blocks, /rɑː/ first, its fight
   await expect(blocks.nth(1)).toContainText("pelea");
   await expect(blocks.nth(1)).toContainText("pelear");
   await expect(blocks.nth(1)).not.toContainText("remo");
+});
+
+// docs/voyager/DESIGN.md "The translations are one line, separated by
+// commas": `row` draws five senses, each its own comma-joined run, never one
+// gloss to a line. `glossLocator`'s presence check above would pass just as
+// well against the old one-per-line markup; this is the assertion that
+// actually distinguishes the two.
+test("`row` draws each sense's translations on one comma-separated line", async ({ page }) => {
+  await deleteTranslator(page);
+  await loadDictionary(page);
+  await answer(page, "row");
+
+  for (const line of [
+    "remado, remo",
+    "fila, hilera, línea, pista, registro, renglón",
+    "pelea, riña, cisco, gresca, pelotera, pifostio, barullo, bulla",
+    "remar, bogar, proejar",
+    "pelear, discutir, reñir",
+  ]) {
+    await expect(page.getByText(line, { exact: true })).toBeVisible();
+  }
 });
 
 // The exhaustive claim — every one of the 190 headwords carrying more than
@@ -98,9 +129,9 @@ test("RL-51: a sense carrying no IPA still answers, under a block with no head",
   expect(heads.filter((head) => head === "")).toHaveLength(1);
   expect(heads.at(-1)).toBe("");
 
-  await expect(page.getByText("poder", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("lata", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("CAN", { exact: true }).first()).toBeVisible();
+  await expect(glossLocator(page, "poder").first()).toBeVisible();
+  await expect(glossLocator(page, "lata").first()).toBeVisible();
+  await expect(glossLocator(page, "CAN").first()).toBeVisible();
 });
 
 // RL-47's suffix clause outranks the grouping, and an exact entry still wins
@@ -117,10 +148,16 @@ test("RL-51 leaves RL-47 standing: `bed` answers as itself and `sternly` still l
 
   await answer(page, "sternly");
   await expect(page.getByRole("heading", { name: "stern", exact: true })).toBeVisible();
+  // "severo" now shares its line with the adjective's other glosses, so the
+  // match is bounded by the line's own start, end or comma rather than an
+  // exact `textContent`.
   const order = await page.evaluate(() => {
-    const nodes = Array.from(document.querySelectorAll("span, p"));
-    const first = nodes.find((node) => node.textContent === "severo");
-    const second = nodes.find((node) => node.textContent === "popa");
+    const glossNode = (gloss: string) =>
+      Array.from(document.querySelectorAll("span, p")).find((node) =>
+        new RegExp(`(^|, )${gloss}(,|$)`).test(node.textContent ?? ""),
+      );
+    const first = glossNode("severo");
+    const second = glossNode("popa");
     if (!first || !second) return null;
     return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
@@ -243,8 +280,8 @@ test("RL-51: the no-entry breakdown never groups — `row` inside a phrase draws
 
   // The word really is in the breakdown, with the senses that would have
   // grouped on the word screen.
-  await expect(page.getByText("remo", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("pelea", { exact: true }).first()).toBeVisible();
+  await expect(glossLocator(page, "remo").first()).toBeVisible();
+  await expect(glossLocator(page, "pelea").first()).toBeVisible();
 
   await expect(page.locator("main [data-pronunciation-block]")).toHaveCount(0);
   await expect(page.getByText("/rɑː/", { exact: true })).toHaveCount(0);
