@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { createTranslator } from "next-intl";
@@ -9,6 +10,7 @@ import postgres from "postgres";
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
 import { DATABASE_VERSION } from "../lib/log/record";
+import type { DictionaryPayload } from "../lib/dictionary/format";
 import type { LookupRecord, SyncState } from "../lib/log/types";
 import { closeRun, openRun } from "@repo/harness-registry";
 
@@ -185,6 +187,21 @@ async function signInAs(page: Page, hash: string): Promise<void> {
   expect(location?.includes("error="), `redirected to ${location ?? "nowhere"}`).toBe(false);
 }
 
+// RL-04's own promise for an exact match: every Spanish translation the
+// dictionary carries for the headword, not a placeholder or another word's
+// answer. The shipped asset is the deterministic source for what a lookup
+// on "apple" is owed — read the same way the running app reaches it, by
+// `manifest.asset.path`, never a filename typed here by hand — so this
+// never touches the network or the model, and never drifts if the asset is
+// rebuilt under a new edition.
+function dictionaryTranslations(word: string): string[] {
+  const payload = JSON.parse(
+    readFileSync(path.join(__dirname, "../public", manifest.asset.path), "utf8"),
+  ) as DictionaryPayload;
+  const normalised = word.toLowerCase();
+  return payload.entries.filter(([headword]) => headword.toLowerCase() === normalised).flatMap(([, , , translations]) => [...translations]);
+}
+
 // `#RRGGBB` to the `rgb(r, g, b)` string `getComputedStyle` answers with —
 // the only format Chromium ever normalises a colour to.
 function hexToRgb(hex: string): string {
@@ -212,7 +229,7 @@ async function breakIndexedDB(page: Page): Promise<void> {
   });
 }
 
-test("a lookup's row lists the typed word, its count and a non-empty translation", async ({ page }) => {
+test("a lookup's row lists the typed word, its count and the dictionary's own translation", async ({ page }) => {
   await deleteTranslator(page);
 
   const assetResponse = page.waitForResponse(
@@ -239,10 +256,19 @@ test("a lookup's row lists the typed word, its count and a non-empty translation
   expect(rowText).toContain("apple");
   expect(rowText).toContain("1");
 
-  // What is left over once the word and its count are stripped is the
-  // translation module 24 wrote and module 25's grouped read carries here.
-  const translation = rowText.replace("apple", "").replace("1", "").trim();
-  expect(translation.length).toBeGreaterThan(0);
+  // RL-04: the row owes the reader the dictionary's own translations for
+  // the word they searched, not merely something drawn where a translation
+  // belongs. "apple" carries a single sense in the shipped dictionary, with
+  // both "manzana" and "poma" — a row that instead drew another word's
+  // translation, the bare headword, or a debug string would still pass a
+  // non-empty check but fails each of these.
+  const wordTranslations = dictionaryTranslations("apple");
+  expect(wordTranslations.length, 'the shipped dictionary carries no entry for "apple"').toBeGreaterThan(0);
+  for (const translation of wordTranslations) {
+    expect(rowText, `the row for "apple" never shows its dictionary translation "${translation}"`).toContain(
+      translation,
+    );
+  }
 });
 
 test("tapping \"Registro\" in the nav bar draws the search that motivated the trip, with no reload and no 5s wait", async ({
