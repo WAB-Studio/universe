@@ -1514,3 +1514,42 @@ generated example's foot line, the voice control and the headless block, so the 
 reader sees that the first board did not show is drawn on the same board rather than a second one.
 The grouping rule, the control's label and the `pn` string add no pixels of their own: the label is
 the control's accessible name, and the part-of-speech label only reads differently.
+
+### The translations are one line, separated by commas. Decided by the user 2026-09-20
+
+**This is not a new design. It is the design the canvas has always carried and the code never
+obeyed.** `Main.dc.html` draws «completamente, de arriba abajo, por todo…, todo, todo el rato»;
+`PalabraClaroEscritorio`, `PalabraCategoria` and `FlexionClaroMovil` draw the same shape. The code
+draws one translation per line, and has since the first day, out of a `.map()` nobody decided.
+`DESIGN.md` said nothing either way — it fixed the type (21 px / 1.5) and never the layout — so the
+gap survived every review, including the board drawn for RL-51 on this same day, which copied the
+code instead of the canvas.
+
+**Measured 2026-09-20 over the shipped asset, at a 360 px viewport (≈31 characters to a line):**
+
+| | |
+|---|---|
+| Translation lines drawn today, one per line | **126,129** |
+| Drawn as commas, wrapped | **81,906** |
+| Saved | **35.1 %** |
+
+Against the entries a reader actually meets: `row` **22 → 7**, `lead` 58 → 20, `so` 40 → 13,
+`leave` 16 → 6, `tear` 11 → 5, `bass` 5 → 3.
+
+**`row` as a whole screen: 41 lines → 26, a 37 % shorter answer, with no meaning removed.** That is
+the question the user opened this work with — «anda muy largo» — and it is the first change that
+answers it. `RL-51`'s grouping gathered the senses and moved none of the length; it was never going
+to, and the screenshot that opened the day looked the same afterwards.
+
+**What this is not.** It is not the padded-list prune, which stays as decided and still demotes
+rather than deletes. It is not the duplicate-translation slice, which saves **nothing at all** on
+`row` — that entry repeats no gloss — and earns its own work on `lead`, `so` and `as`. The three
+compose and none replaces another.
+
+**«Traducciones» keeps its own line.** Removing it as well was offered and refused the same day: it
+is what separates the glosses from the English definition underneath, and `row` still reaches 26
+lines without spending it.
+
+**When a board and the code disagree, this is the direction the fix runs.** The canvas is the
+artifact; a screen that drifted from it drifted by accident, not by decision. Read the boards before
+assuming the shipped screen is the intended one.

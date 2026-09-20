@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
@@ -49,6 +49,15 @@ async function headingOrder(page: Page): Promise<string[]> {
     const headings = Array.from(document.querySelectorAll("main h1, main h2, main h3"));
     return headings.map((h) => h.textContent ?? "");
   });
+}
+
+// A gloss shares its line with the rest of its sense's translations
+// (docs/voyager/DESIGN.md "The translations are one line, separated by
+// commas"), so it is no longer a text node of its own: this finds it
+// bounded by the line's own start, end or `, `.
+function glossLocator(page: Page, gloss: string): Locator {
+  const escaped = gloss.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return page.getByText(new RegExp(`(^|, )${escaped}(,|$)`));
 }
 
 // RL-47: the form the reader typed leads the answer, and the headword it
@@ -122,8 +131,13 @@ test("RL-47 keeps the bed clause: bed answers alone, reading still leads over re
   await searchBox.fill("reading");
   await expect(page.getByRole("heading", { name: "reading", exact: true })).toBeVisible({ timeout: 5000 });
   await expect(page.getByRole("heading", { name: "read", exact: true })).toBeVisible();
-  await expect(page.getByText("lectura", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("leída", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "lectura").first()).toBeVisible();
+  await expect(glossLocator(page, "leída")).toBeVisible();
+  // `glossLocator` alone would pass just as well against the old
+  // one-gloss-per-line markup; this is the line that actually holds
+  // `reading`'s own two glosses joined (docs/voyager/DESIGN.md "The
+  // translations are one line, separated by commas").
+  await expect(page.getByText("lectura, leída", { exact: true })).toBeVisible();
 
   const order = await headingOrder(page);
   expect(order.indexOf("reading")).toBeLessThan(order.indexOf("read"));

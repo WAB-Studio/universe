@@ -167,7 +167,9 @@ function leadPronunciation(senses: readonly Sense[]): string | null {
   return pronunciationBlocks(senses)?.[0].ipa ?? null;
 }
 
-// One sense's own body: every translation on its own line, its English
+// One sense's own body: every translation on one comma-joined line
+// (docs/voyager/DESIGN.md "The translations are one line, separated by
+// commas"), its English
 // definition drawn open beneath its own label when the entry carries one
 // (docs/voyager/DESIGN.md "The English definition draws open, always"), and
 // its own IPA only when it is a different sound from the one already drawn
@@ -204,11 +206,7 @@ function SenseDetail({
         <Text size="1" color="gray">
           {t("translations")}
         </Text>
-        {sense.translations.map((translation) => (
-          <Text variant="translation" key={translation}>
-            {translation}
-          </Text>
-        ))}
+        <Text variant="translation">{sense.translations.join(", ")}</Text>
       </Flex>
       {!compact && sense.definition !== null && (
         <Flex direction="column" data-definition-block="">
