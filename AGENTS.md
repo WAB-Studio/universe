@@ -24,6 +24,9 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
 - Dispatch the `mutator` before closing a slice, once the validator is green. It breaks the lines the
   branch itself changed and reports what no suite noticed. A survivor is a regression that ships in
   silence.
+- Dispatch the `test-critic` on a suite, never on a branch. It says what a green run really promises:
+  which assertions cannot fail, which surfaces nobody drives, and which facts are paid for twice.
+  `mutator` judges the lines a branch changed; only this one judges the suite as a whole.
 - Put the critic's questions to the user, in their own words. Never answer one for them.
 - Never close a slice on a report of greens alone. A slice with no criticism in it was not reviewed.
 - Keep plans in `private/`.
