@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import messages from "../messages/es.json";
 import manifest from "../public/dictionary/manifest.json";
@@ -101,6 +101,18 @@ async function seedRows(page: Page, rows: SeedRow[]): Promise<void> {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// A dictionary gloss shares its line with the rest of its sense's
+// translations (docs/voyager/DESIGN.md "The translations are one line,
+// separated by commas"), so it is no longer a text node of its own: this
+// finds it bounded by the line's own start, end or `, `, never a longer
+// gloss that merely contains it. A phrase's own stored `translation`
+// (`kind: "phrase"`) is never joined with anything else and needs no such
+// bound, so those assertions below stay on plain `getByText`.
+function glossLocator(page: Page, gloss: string): Locator {
+  const escaped = gloss.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return page.getByText(new RegExp(`(^|, )${escaped}(,|$)`));
+}
 
 test("a word's history lists every one of its searches with its date, and no other word leaks in", async ({
   page,
@@ -368,9 +380,14 @@ test("/registro/bed answers with the same senses, translations and IPA /?q=bed d
   await page.goto("/registro/bed");
   await expect(page.getByRole("heading", { name: "bed" })).toBeVisible();
   await expect(page.getByText("/bed/").first()).toBeVisible();
-  await expect(page.getByText("cama", { exact: true })).toBeVisible();
-  await expect(page.getByText("lecho", { exact: true })).toBeVisible();
-  await expect(page.getByText("encamarse", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "cama")).toBeVisible();
+  await expect(glossLocator(page, "lecho")).toBeVisible();
+  await expect(glossLocator(page, "encamarse")).toBeVisible();
+  // `glossLocator` alone would pass just as well against the old
+  // one-gloss-per-line markup; this is the line that actually holds the
+  // verb sense's two glosses joined (docs/voyager/DESIGN.md "The
+  // translations are one line, separated by commas").
+  await expect(page.getByText("encamarse, irse a la cama", { exact: true })).toBeVisible();
   // The one heading on the page is the word itself: `SenseList`'s own copy
   // of "bed" stays suppressed, or this locator would be ambiguous.
   await expect(page.getByRole("heading", { name: "bed" })).toHaveCount(1);
@@ -384,9 +401,10 @@ test("/registro/bed answers with the same senses, translations and IPA /?q=bed d
   await page.goto("/?q=bed");
   await expect(page.getByRole("heading", { name: "bed" })).toBeVisible();
   await expect(page.getByText("/bed/").first()).toBeVisible();
-  await expect(page.getByText("cama", { exact: true })).toBeVisible();
-  await expect(page.getByText("lecho", { exact: true })).toBeVisible();
-  await expect(page.getByText("encamarse", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "cama")).toBeVisible();
+  await expect(glossLocator(page, "lecho")).toBeVisible();
+  await expect(glossLocator(page, "encamarse")).toBeVisible();
+  await expect(page.getByText("encamarse, irse a la cama", { exact: true })).toBeVisible();
 });
 
 // RNL-09: the dictionary is a local asset once installed, so re-entering a
@@ -398,7 +416,7 @@ test("opening /registro/bed, with the dictionary already on the device, reaches 
 }) => {
   await deleteTranslator(page);
   await page.goto("/?q=bed");
-  await expect(page.getByText("cama", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "cama")).toBeVisible();
 
   await page.goto("/registro");
   await seedRows(page, [{ at: Date.now(), text: "bed", normalised: "bed", translation: "cama" }]);
@@ -413,7 +431,7 @@ test("opening /registro/bed, with the dictionary already on the device, reaches 
   });
 
   await page.goto("/registro/bed");
-  await expect(page.getByText("lecho", { exact: true })).toBeVisible();
+  await expect(glossLocator(page, "lecho")).toBeVisible();
 
   expect(assetRequests, "the dictionary asset is read off the device, never fetched again").toBe(0);
   expect(apiRequests, "no server route fires on this screen").toBe(0);
