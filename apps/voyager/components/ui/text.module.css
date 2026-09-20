@@ -8,6 +8,10 @@
 .translation.translation {
   font-size: 21px;
   line-height: 1.5;
+  /* Five glosses in the asset are one unbreakable token wider than the 360px
+     column, the longest 85 characters. `Headword` already breaks for the same
+     string; the line that translates it never did. */
+  overflow-wrap: anywhere;
 }
 
 /* docs/voyager/DESIGN.md "Tokens": the muted role, never Radix's own
