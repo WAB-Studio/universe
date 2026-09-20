@@ -9,7 +9,8 @@ import path from "node:path";
 
 import { manifestSchema } from "../lib/dictionary/format";
 import { buildIndex, groupFor, type DictionaryIndex, type SenseGroup } from "../lib/dictionary/index-build";
-import { isThinAnswer } from "../lib/word/thin";
+import type { InflectionRule } from "../lib/dictionary/inflect";
+import { inflectionReallyMovedReader, isInflectionDisagreement, isThinAnswer } from "../lib/word/thin";
 
 const APP_DIR = path.resolve(__dirname, "..");
 const PUBLIC_DIR = path.join(APP_DIR, "public");
@@ -143,6 +144,46 @@ assert(
     return group !== null && isThinAnswer(group);
   }),
   `8 of 45 distinct words the reader looked up 2026-09-12, 18% — the same order as 16.1% over the dictionary at large`,
+);
+
+// RL-45's flexion widening: `disagrees` combines the two calls the route
+// itself never skips — first that the flexion really moved the reader off
+// their own surface, then that the target lemma still lacks the category
+// the surface's own ending promised.
+function disagrees(index: DictionaryIndex, headword: string, surface: string, rule: InflectionRule): boolean {
+  const group = groupFor(index, headword)!;
+  return inflectionReallyMovedReader(index, headword, surface, rule) && isInflectionDisagreement(group, rule);
+}
+
+console.log("Verdict for the flexion cases the reader's own 45 lookups carried:");
+const INFLECTION_CASES: { surface: string; headword: string; rule: InflectionRule; expected: boolean }[] = [
+  // The one case the widening exists for: `swish` carries only the
+  // adjective, so `-ing` disagrees and the reader gets the verb offered.
+  { surface: "swishing", headword: "swish", rule: "ing", expected: true },
+  // Every other flexion this reader's own chapter carried, where the
+  // target lemma already carries the category the ending promised.
+  { surface: "sternly", headword: "stern", rule: "adverb-ly", expected: false },
+  { surface: "shrieked", headword: "shriek", rule: "past-ed", expected: false },
+  { surface: "fidgeted", headword: "fidget", rule: "past-ed", expected: false },
+  { surface: "snuffed", headword: "snuff", rule: "past-ed", expected: false },
+  { surface: "pullets", headword: "pullet", rule: "plural-s", expected: false },
+  { surface: "frisking", headword: "frisk", rule: "ing", expected: false },
+  { surface: "hoots", headword: "hoot", rule: "plural-s", expected: false },
+  // The regression a first, uncorrected draft of this rule shipped: the
+  // surface itself carries its own entry, so nothing moved the reader
+  // anywhere, whatever rule a stray inflection candidate also matched.
+  { surface: "swiftly", headword: "swift", rule: "adverb-ly", expected: false },
+  { surface: "ruthlessly", headword: "ruthless", rule: "adverb-ly", expected: false },
+  { surface: "buried", headword: "bury", rule: "past-ied", expected: false },
+];
+for (const { surface, headword, rule } of INFLECTION_CASES) {
+  console.log(`  ${surface} -> ${headword} (${rule}): ${disagrees(index, headword, surface, rule)}`);
+}
+
+assert(
+  next("the widening catches swishing -> swish and only that one"),
+  INFLECTION_CASES.every((c) => disagrees(index, c.headword, c.surface, c.rule) === c.expected),
+  "9 of the reader's 45 real lookups fire once isThinAnswer and this widening are combined, one more than isThinAnswer alone (measured against reading.lookups directly)",
 );
 
 report();
