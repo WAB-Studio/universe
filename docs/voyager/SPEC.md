@@ -104,6 +104,26 @@ this gets built, and no schema, table or column is "prepared for" it.
   screen never calls a link invalid on the strength of a timeout, and nothing verifies again on the
   reader's behalf: `verifyOtp` is not idempotent and a timeout says nothing about whether the token
   was spent.
+- [ ] **RL-50** — A translation the provider's public memory supplies is judged before the reader
+  reads it, and sexual or obscene content is never drawn. The reader either gets a translation that
+  answers what they typed, or is told the phrase could not be answered — never the provider's
+  memory verbatim. A phrase the reader themselves typed is not the target: what is filtered is what
+  comes back, not what goes out.
+  - Measured 2026-09-20, `i love you`, `en|es`: `responseStatus: 200`, and
+    `responseData.translatedText` holds an explicit sexual sentence at `match: 1`, `quality: 74`.
+    It passes every gate `isUsableTranslation` applies — non-empty, not an echo, no warning prefix —
+    so `app/api/translate/route.ts:118-120` returns it and `bestAlternativeTranslation`, RL's own
+    fix for the empty primary field, is never reached.
+  - **Choosing by score cannot do this.** `te quiero` sits in `matches[1]` with the *same* `match: 1`
+    and the *same* `quality: 74`. The explicit entry wins on position alone, so no ordering by the
+    provider's own numbers separates them.
+  - **The model judges it. Decided by the user 2026-09-20**, over a length-disproportion rule and a
+    word list. Disproportion would have caught this one — 67 characters answering 10 — and misses a
+    short obscenity; a list has to be kept and vetoes the word when a reader looks it up on purpose.
+    The model is the same one already in use, and this is the second place it is asked to judge
+    content rather than produce it (`docs/voyager/DESIGN.md`, the lazy gloss prune).
+  - Not built. No board drawn for the state a reader sees when every candidate is refused.
+
 - [ ] **RL-07** — Autocomplete appears only while the string is being treated as a word. A sentence never raises it.
 - [x] **RL-26** — A headword's answer can be heard. The device speaks it with the voice the browser
   already carries, so a headword with no IPA is spoken exactly like one that has it. Decided by the
