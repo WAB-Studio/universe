@@ -94,7 +94,7 @@ this gets built, and no schema, table or column is "prepared for" it.
     `faster` offers `fast`, `gone` offers `go`, `women` offers `woman`, `people` offers `person`.
     `word` offers nothing, so an answered query gains no clutter.
 
-- [ ] **RL-51** — A headword whose senses carry more than one pronunciation answers in one block per
+- [x] **RL-51** — A headword whose senses carry more than one pronunciation answers in one block per
   pronunciation, its IPA named once at the block's head, and RL-43's frequency order governs the
   parts of speech **inside** a block rather than across the whole entry. `row` answers `/rɑː/` —
   «remo, fila, remar» — and `/ɹaʊ/` — «pelea, pelear» — as two blocks, instead of leaving the two
@@ -155,7 +155,16 @@ this gets built, and no schema, table or column is "prepared for" it.
     first heads the entry, so no headword changes which sense leads it; the scattered ones are only
     gathered. Nothing in the asset ranks a pronunciation, and nothing is asked over the network to
     invent one.
-  - Not built. Board: `PalabraPronunciacionOscuroMovil`, drawn 2026-09-20 and taken by the user.
+  - **Driven, not asserted, 2026-09-20.** `row` answers `/rɑː/` — remo, fila, remar — then `/ɹaʊ/` —
+    pelea, pelear. `can` draws its two pronunciations and then the acronym under a block nothing
+    heads. `leave`, `grudge`, `bed` and `sternly` draw no block at all, and `bed` still answers as
+    its own entry: RL-43 and RL-47 both hold inside the grouping.
+  - A mutator broke the lines the branch changed: 15 mutations, 14 killed, and the one survivor —
+    deleting the guard that keeps the `compact` breakdown from grouping — now has its own test. No
+    phrase any suite drives contains one of the grouped headwords, so that guard had been green by
+    accident of vocabulary.
+  - Board: `PalabraPronunciacionOscuroMovil`, drawn 2026-09-20 and redrawn the same day to carry the
+    example's foot line, the voice control and the headless block.
 
 - [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
   record holds what the dictionary could not answer and not only what it could. The same settling rule
