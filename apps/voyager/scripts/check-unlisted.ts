@@ -3,9 +3,14 @@
  * real database — never asserted from the route's source, per AGENTS.md
  * ("Verification"). `admit.ts`, `index-build.ts` and `lookup.ts` carry no
  * `server-only` import and are imported for real below; `client-budget.ts`
- * and `spend.ts` do, so their two functions' bodies are reimplemented here
- * directly, the same reason `check-admission.ts` and `check-decoration.ts`
- * open their own `postgres` connection instead of `db/client.ts`.
+ * does, so its own `clientKey` wrapper — the "no salt configured" null,
+ * against a synthetic address rather than a `Request` — is reimplemented
+ * here directly, delegating the formula itself to the real
+ * `clientKeyFromAddress` (`lib/word/client-key.ts`), which carries no such
+ * import. `spend.ts`'s writer is never called from here at all; this
+ * script only reads `reading.model_spend` back, the same reason
+ * `check-admission.ts` and `check-decoration.ts` open their own `postgres`
+ * connection instead of `db/client.ts`.
  *
  * Three assertions spend a real model call, on purpose and no more than the
  * three the module's "done when" names: a cold "coccidiosis", a cold
@@ -24,7 +29,6 @@
  * first, the same `fuser -k <port>/tcp` AGENTS.md names.
  */
 import { execSync, spawn, type ChildProcess } from "node:child_process";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 import path from "node:path";
@@ -33,6 +37,7 @@ import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 
 import { admitWord } from "../lib/word/admit";
+import { clientKeyFromAddress } from "../lib/word/client-key";
 import type { DictionaryPayload } from "../lib/dictionary/format";
 import { buildIndex } from "../lib/dictionary/index-build";
 import { lookupWord } from "../lib/dictionary/lookup";
@@ -84,11 +89,13 @@ function assert(label: string, ok: boolean, detail: string): void {
   }
 }
 
-// `clientKey`'s body (`lib/word/client-budget.ts`), reimplemented because
-// that file opens with `import "server-only"` (see the file header above).
+// The route's key with a synthetic address in hand rather than a `Request`
+// — `clientKeyFromAddress` (`lib/word/client-key.ts`) is the formula both
+// share; this just keeps its own "no salt configured" null the route's
+// `clientKey` wrapper also returns.
 function clientKey(address: string, salt: string | undefined): string | null {
   if (!salt) return null;
-  return createHash("sha256").update(`${salt}:${address}`).digest("hex");
+  return clientKeyFromAddress(address, salt);
 }
 
 const CLIENT_KEY_SALT = process.env.CLIENT_KEY_SALT;
