@@ -171,8 +171,8 @@ function gatherByIpa(senses: readonly Sense[]): PronunciationBlock[] {
 }
 
 // RL-51: one block per pronunciation, or null when the group carries no more
-// than one and the screen must draw exactly what it drew before — 59,148 of
-// 59,253 headwords, `leave` and `grudge` among them.
+// than one and the screen must draw exactly what it drew before — 58,754 of
+// 58,944 headwords, `leave` and `grudge` among them.
 //
 // The pronunciation of whichever sense groupFor put first heads the entry and
 // the rest follow their own first sense, so no headword changes which sense
