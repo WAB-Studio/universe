@@ -661,6 +661,36 @@ test("RL-22: a sign-in link that verifyOtp rejects lands on /cuenta with its own
   await expect(page.getByText(messages.account.errors.linkTimeoutTitle)).toHaveCount(0);
 });
 
+// RL-22, session isolation: `createSupabaseServerClient`'s own doc comment
+// says why — without these directives a CDN in front of the route may cache
+// the `Set-Cookie` this redirect carries and hand one reader's session to
+// whoever asks next. Measured against the rejected-token path above: that
+// redirect never calls `supabase.auth.verifyOtp` far enough to write a
+// cookie, so it ships no such header and nothing here claims otherwise —
+// only the redirect that actually lands a session is in scope.
+test("RL-22: the redirect that lands a session ships no-store, so a caching layer in front of it never hands that session to the next reader", async ({
+  page,
+}) => {
+  const sql = postgres(process.env.MIGRATION_DATABASE_URL!, { prepare: false, max: 1 });
+  const runId = await openRun("e2e", sql);
+  const { id: readerId, hash } = await mintReaderIdentity(sql, runId);
+
+  try {
+    const response = await page.request.get(`/auth/confirm?token_hash=${hash}&type=magiclink`, {
+      maxRedirects: 0,
+    });
+    const location = response.headers()["location"];
+    expect(location?.includes("error="), `redirected to ${location ?? "nowhere"}`).toBe(false);
+
+    const cacheControl = response.headers()["cache-control"] ?? "(absent)";
+    expect(cacheControl, `cache-control on the sign-in redirect: ${cacheControl}`).toContain("no-store");
+  } finally {
+    await dropReaderIdentity(sql, readerId);
+    await closeRun(sql);
+    await sql.end();
+  }
+});
+
 // RL-49: `/cuenta?error=linkTimeout` is what `route.ts` sends for the
 // gateway-never-answered case. Reached directly, with no token at all — the
 // screen only reads the query string, so no `verifyOtp` call is in play
