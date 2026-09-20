@@ -150,28 +150,31 @@ export function groupFor(
   return { headword: normalisedHeadword, senses };
 }
 
-// Syllable dots, tie bars, parentheses and spacing: notation the asset
-// spends freely and a reader hears nothing of.
-const IPA_NOTATION = /[.͡()\s]/gu;
+// Syllable dots, tie bars, parentheses, spacing and the secondary stress
+// mark: notation the asset spends freely and a reader hears nothing of.
+const IPA_NOTATION = /[.\u0361()\s\u02cc]/gu;
 
 // A primary stress mark at the very start of the transcription, opening
 // delimiter and all — `/ˈhoʊp/` and `[ˈhoʊp]` alike.
-const LEADING_PRIMARY_STRESS = /^([/[]?)ˈ/u;
+const LEADING_PRIMARY_STRESS = /^([/[]?)\u02c8/u;
 
 // What two pronunciations are compared on. Never what is drawn: the IPA on
 // screen is always the one the asset carries.
 //
 // The asset writes one sound several ways — `hope` carries `/hoʊp/` beside
-// `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` beside `/ˈdeɪ.zi/` — and a block per
-// spelling tells the reader that two identical sounds differ. Measured
-// 2026-09-20 over the shipped asset: 16 of the 190 headwords split on a
-// notation accident alone.
+// `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` beside `/ˈdeɪ.zi/`, `canton` `/ˈkæntɒn/`
+// beside `/ˈkænˌtɒn/` — and a block per spelling tells the reader that two
+// identical sounds differ. Measured 2026-09-20 over the shipped asset: 19
+// of the 190 headwords split on a notation accident alone.
 //
-// The stress clause is position 0 and nowhere else. A word carrying one
-// stress is not distinguished by whether the asset wrote the mark, but a
-// stress *inside* the word is the whole distinction: `imprint` /ɪmˈpɹɪnt/
-// against /ˈɪm.pɹɪnt/, and `invite`, `mandate`, `canton`, `koine` — noun
-// against verb, the homographs RL-51 exists to separate.
+// Only the *primary* stress is a distinction, and only where it falls. The
+// mark goes at position 0, where a word with one stress is not distinguished
+// by whether the asset wrote it, and stays inside the word, where it is the
+// whole distinction: `imprint` /ɪmˈpɹɪnt/ against /ˈɪm.pɹɪnt/, and `invite`,
+// `mandate`, `koine`, `english` — noun against verb, the homographs RL-51
+// exists to separate. A secondary mark never carries that distinction, so it
+// goes with the notation above: `canton`, `facebook` and `thanksgiving`
+// stress the same syllable either way.
 export function ipaKey(ipa: string): string {
   return ipa.replace(IPA_NOTATION, "").replace(LEADING_PRIMARY_STRESS, "$1");
 }
@@ -201,7 +204,7 @@ function gatherByIpa(senses: readonly Sense[]): PronunciationBlock[] {
 }
 
 // RL-51: one block per pronunciation, or null when the group carries no more
-// than one and the screen must draw exactly what it drew before — 58,770 of
+// than one and the screen must draw exactly what it drew before — 58,773 of
 // 58,944 headwords, `leave` and `grudge` among them, and `hope` and `daisy`
 // since the grouping started comparing sounds rather than spellings.
 //

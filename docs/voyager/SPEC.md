@@ -103,25 +103,29 @@ this gets built, and no schema, table or column is "prepared for" it.
   - **Two pronunciations are compared on their sound, never on their spelling.** The asset writes one
     sound several ways — `hope` carries `/hoʊp/` and `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` and `/ˈdeɪ.zi/`,
     `god` `/ɡɑ(d)/` and `/ɡɑd/` — and a block per spelling tells the reader that two identical sounds
-    differ. Syllable dots, tie bars, parentheses and spacing are dropped before the comparison, and a
-    primary stress mark is dropped **at position 0 alone**. What is drawn is always the IPA the asset
-    carries; the normalised form decides grouping and nothing else.
-  - **The stress clause stops at position 0 because the stress inside the word is the distinction.**
-    `imprint` is `/ɪmˈpɹɪnt/` against `/ˈɪm.pɹɪnt/`, and `invite`, `mandate`, `canton` and `koine`
-    are the same shape: noun-stress against verb-stress, the homographs this requirement exists to
-    separate. A general strip folds all five into one block.
+    differ. Syllable dots, tie bars, parentheses, spacing and the secondary stress mark are dropped
+    before the comparison, and the primary stress mark is dropped **at position 0 alone**. What is
+    drawn is always the IPA the asset carries; the normalised form decides grouping and nothing else.
+    A sense keeps an IPA line of its own under a label row on the same test: a different sound, never
+    a different spelling.
+  - **The primary stress is kept inside the word because there it is the distinction.** `imprint` is
+    `/ɪmˈpɹɪnt/` against `/ˈɪm.pɹɪnt/`, and `invite`, `mandate`, `koine` and `english` are the same
+    shape: noun-stress against verb-stress, the homographs this requirement exists to separate. A
+    general strip folds all five into one block. The **secondary** mark never carries that
+    distinction — it rides on a syllable both spellings already agree about — so it goes with the
+    notation: `canton`, `facebook` and `thanksgiving` are the only three headwords it separated, and
+    they fold.
   - Measured 2026-09-20 through the app's own `buildIndex` and `groupFor`: of **58,944** indexed
-    headwords, **174 carry more than one pronunciation**, and **24 of those interleave** in the order
+    headwords, **171 carry more than one pronunciation**, and **23 of those interleave** in the order
     the screen really draws, after RL-43's sort. They are `a`, `bass`, `bow`, `desert`, `earth`,
-    `english`, `facebook`, `flush`, `frank`, `italic`, `job`, `lead`, `less`, `minute`, `mow`,
-    `mush`, `parmesan`, `polish`, `renaissance`, `row`, `second`, `subject`, `sun` and `tear`: the
+    `english`, `flush`, `frank`, `italic`, `job`, `lead`, `less`, `minute`, `mow`, `mush`,
+    `parmesan`, `polish`, `renaissance`, `row`, `second`, `subject`, `sun` and `tear`: the
     homographs a reader of English actually meets.
-  - **16 headwords split on a notation accident alone and stop splitting**: `buffalo`, `calliope`,
-    `daisy`, `flora`, `god`, `ham`, `hope`, `iron curtain`, `john`, `majesty`, `mass`, `mercury`,
-    `o`, `roger`, `trinity` and `tyre`. They answer as they answered before RL-51 — one entry, no
-    block. `english` and `facebook` are not among them and keep their two blocks: `english` carries
-    a stress mid-word, `facebook` a secondary stress, and `canton` carries that same secondary-stress
-    pair while being two words.
+  - **19 headwords split on a notation accident alone and stop splitting**: `buffalo`, `calliope`,
+    `canton`, `daisy`, `facebook`, `flora`, `god`, `ham`, `hope`, `iron curtain`, `john`, `majesty`,
+    `mass`, `mercury`, `o`, `roger`, `thanksgiving`, `trinity` and `tyre`. They answer as they
+    answered before RL-51 — one entry, no block. `english` is not among them and keeps its two
+    blocks: its two spellings put the primary stress on different syllables.
   - **Measure this on the normalised headword and on `groupFor`'s order, never on the raw asset.**
     The asset's own keys are case-sensitive and its own order is not the screen's: measured that way
     the same census reads 105, 11 and 0, and all three are wrong for this requirement. The app
@@ -132,15 +136,16 @@ this gets built, and no schema, table or column is "prepared for" it.
     the same hairline every other block is ruled apart with — so a reader takes it for a further
     sense of the block above it. Accepted knowing that, by the user 2026-09-20, over not grouping
     those two entries at all and over dropping the acronym outright.
-  - The other 58,770 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
+  - The other 58,773 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
     not retired — `grudge` and `leave`, its own examples, carry one pronunciation each. The per-word
     breakdown of a phrase the dictionary cannot answer never groups either: it carries translations
     alone, so it names no pronunciation at all.
   - **The voice control names the pronunciation it speaks.** `speak` is handed the spelling, so the
     browser itself picks one of a grouped entry's sounds: the control says which — the entry's
     leading block, the one drawn directly under the headword — instead of claiming two sounds and
-    offering one unnamed. A second control was refused: both would take the same spelling and sound
-    alike.
+    offering one unnamed. It names it in the control's own label and draws nothing: the block head
+    under it already carries that IPA. A second control was refused: both would take the same
+    spelling and sound alike.
   - **The generated example (RL-42) names the pronunciation it belongs to**, in a line at its foot,
     on a grouped entry alone. It is resolved from the spelling, so it lands under whichever block the
     entry draws last and reads as that block's own: `row` closed with «Me gusta remar el bote»

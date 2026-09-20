@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 
-import { pronunciationBlocks, type Sense } from "@/lib/dictionary/index-build";
+import { ipaKey, pronunciationBlocks, type Sense } from "@/lib/dictionary/index-build";
 import type { WordAnswer } from "@/lib/dictionary/lookup";
 import { speak, speechSupported } from "@/lib/speech/speak";
 import {
@@ -158,7 +158,7 @@ function SpeakButton({
 }
 
 // The IPA heading the entry's first pronunciation block, or null when the
-// entry draws no block at all (58,770 of 58,944 headwords) or when that
+// entry draws no block at all (58,773 of 58,944 headwords) or when that
 // first block is the headless one — which only `can` and `pace` carry, and
 // never in first place. The voice control and the generated example are
 // both named from here, so neither can name a sound the screen does not
@@ -170,9 +170,12 @@ function leadPronunciation(senses: readonly Sense[]): string | null {
 // One sense's own body: every translation on its own line, its English
 // definition drawn open beneath its own label when the entry carries one
 // (docs/voyager/DESIGN.md "The English definition draws open, always"), and
-// its own IPA only when it differs from the one already drawn on
-// its segment's label row — repeating an identical IPA on every sense would
-// say nothing a reader does not already have. `compact` drops the IPA and
+// its own IPA only when it is a different sound from the one already drawn
+// on its segment's label row — repeating an identical IPA on every sense
+// would say nothing a reader does not already have. Compared through
+// `ipaKey`, the same key the grouping runs on: two notations of one sound
+// are not two sounds, which used to cost `god`, `majesty` and `mass` a dead
+// line each (`/ɡɑ(d)/` over `/ɡɑd/`, `/ˈmæs/` over `/mæs/`). `compact` drops the IPA and
 // the definition (docs/voyager/DESIGN.md "A word block on `SinEntradaFrase`
 // carries its translations alone"): only `NoEntryAnswer`'s per-word
 // breakdown ever sets it.
@@ -187,7 +190,8 @@ function SenseDetail({
   compact: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const ownIpa = !compact && sense.ipa !== null && sense.ipa !== segmentIpa ? sense.ipa : null;
+  const ownSound = sense.ipa !== null && (segmentIpa === null || ipaKey(sense.ipa) !== ipaKey(segmentIpa));
+  const ownIpa = !compact && ownSound ? sense.ipa : null;
 
   return (
     <Flex direction="column" gap="2">

@@ -144,11 +144,15 @@ test("RL-51: the comparison key drops notation and a leading stress, and keeps e
   assert.equal(ipaKey("/ɡɑ(d)/"), ipaKey("/ɡɑd/"));
   assert.equal(ipaKey("/hoʊp/"), ipaKey("/ˈhoʊp/"));
 
-  // A stress inside the word is the noun-verb distinction itself, and a
-  // secondary stress is a mark of its own — `canton` carries both spellings
-  // and is two words.
+  // A secondary stress is notation too: the three headwords that carry one
+  // spelling with it and one without — `canton`, `facebook`, `thanksgiving` —
+  // stress the same syllable either way.
+  assert.equal(ipaKey("/ˈkæntɒn/"), ipaKey("/ˈkænˌtɒn/"));
+  assert.equal(ipaKey("/ˈfeɪs.bʊk/"), ipaKey("/ˈfeɪsˌbʊk/"));
+
+  // A *primary* stress inside the word is the noun-verb distinction itself.
   assert.notEqual(ipaKey("/ɪmˈpɹɪnt/"), ipaKey("/ˈɪm.pɹɪnt/"));
-  assert.notEqual(ipaKey("/ˈkæntɒn/"), ipaKey("/ˈkænˌtɒn/"));
+  assert.notEqual(ipaKey("/ɪŋˈɡlɪʃ/"), ipaKey("/ˈɪŋ.ɡlɪʃ/"));
 });
 
 test("RL-51: two spellings of one sound are one pronunciation, so the entry draws no block", () => {
@@ -194,7 +198,7 @@ test("RL-51: the block wears the spelling of its own first sense, never a normal
   );
 });
 
-// --- the 58,770 headwords that must not move ---
+// --- the 58,773 headwords that must not move ---
 
 test("RL-51: one pronunciation is no grouping — `leave` answers with no block at all", () => {
   // `pos-frequency.ts` scores `leave` "vn": «dejar» leads «permiso», the
@@ -336,13 +340,13 @@ test("RL-51: the census docs/voyager/SPEC.md records is the one the app's own in
     if (drawn.some((sense, at) => sense !== group.senses[at])) interleaved++;
   }
 
-  assert.equal(multiple, 174, "headwords carrying more than one named pronunciation");
-  assert.equal(interleaved, 24, "of those, the ones whose senses the gathering really moves");
+  assert.equal(multiple, 171, "headwords carrying more than one named pronunciation");
+  assert.equal(interleaved, 23, "of those, the ones whose senses the gathering really moves");
   assert.equal(nameless, 2, "of those, the ones carrying a sense with no pronunciation (`can`, `pace`)");
   assert.equal(defectOf(index, "row"), null);
 });
 
-test("RL-51: exactly the 16 headwords that split on notation alone stop splitting, and no other does", () => {
+test("RL-51: exactly the 19 headwords that split on notation alone stop splitting, and no other does", () => {
   const index = shippedIndex();
 
   // Derived, never listed: a headword carrying more than one *spelling*
@@ -356,7 +360,9 @@ test("RL-51: exactly the 16 headwords that split on notation alone stop splittin
   assert.deepEqual(folded, [
     "buffalo",
     "calliope",
+    "canton",
     "daisy",
+    "facebook",
     "flora",
     "god",
     "ham",
@@ -368,6 +374,7 @@ test("RL-51: exactly the 16 headwords that split on notation alone stop splittin
     "mercury",
     "o",
     "roger",
+    "thanksgiving",
     "trinity",
     "tyre",
   ]);
@@ -375,11 +382,12 @@ test("RL-51: exactly the 16 headwords that split on notation alone stop splittin
 
 test("RL-51: the homographs a stress inside the word really separates still answer in two blocks", () => {
   // Noun-stress against verb-stress, which is the distinction RL-51 exists
-  // to draw. `english` and `facebook` are here for the same reason and
-  // through other marks: a stress mid-word, and a secondary stress.
+  // to draw. `english` is here for the same reason through a stress mid-word;
+  // `canton` and `facebook` are not, and fold, because what separated their
+  // two spellings was a secondary mark over the same syllable.
   const index = shippedIndex();
 
-  for (const headword of ["imprint", "invite", "mandate", "canton", "koine", "english", "facebook"]) {
+  for (const headword of ["imprint", "invite", "mandate", "koine", "english", "row", "tear", "bass", "lead"]) {
     const blocks = pronunciationBlocks(groupFor(index, headword)!.senses);
     assert.ok(blocks !== null, `${headword} stopped grouping`);
     assert.equal(blocks.length, 2, `${headword} drew ${blocks.length} blocks`);

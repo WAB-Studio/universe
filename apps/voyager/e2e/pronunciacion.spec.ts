@@ -127,36 +127,38 @@ test("RL-51 leaves RL-47 standing: `bed` answers as itself and `sternly` still l
   expect(order).toBe(true);
 });
 
-// The 16 headwords that used to split on a notation accident. The asset
+// The 19 headwords that used to split on a notation accident. The asset
 // writes one sound several ways — `hope` carries `/hoʊp/` and `/ˈhoʊp/`,
-// `daisy` `/ˈdeɪzi/` and `/ˈdeɪ.zi/`, `god` `/ɡɑ(d)/` and `/ɡɑd/` — and two
+// `daisy` `/ˈdeɪzi/` and `/ˈdeɪ.zi/`, `god` `/ɡɑ(d)/` and `/ɡɑd/`, `canton`
+// `/ˈkæntɒn/` and `/ˈkænˌtɒn/` — and two
 // blocks over them told the reader that two identical sounds differ. Which
-// 16 they are is proved over the whole asset in
-// `lib/dictionary/index-build.test.ts`; these six are what the screen is
-// driven through. `o` is the seventh and cannot be: `lookupWord` answers no
+// 19 they are is proved over the whole asset in
+// `lib/dictionary/index-build.test.ts`; these nine are what the screen is
+// driven through. `o` is a tenth and cannot be: `lookupWord` answers no
 // one-letter headword but "a" and "i", so `o` draws nothing on any screen,
 // RL-51 or not.
-test("RL-51: a sound written two ways is one sound — `hope` and its five kin answer ungrouped", async ({
+test("RL-51: a sound written two ways is one sound — `hope` and its eight kin answer ungrouped", async ({
   page,
 }) => {
   await deleteTranslator(page);
   await loadDictionary(page);
 
-  for (const word of ["hope", "daisy", "mass", "ham", "john", "god"]) {
+  for (const word of ["hope", "daisy", "mass", "ham", "john", "god", "canton", "facebook", "thanksgiving"]) {
     await answer(page, word);
     expect(await blockHeads(page), word).toEqual([]);
   }
 });
 
-// The other half of the same rule: the stress mark is stripped at position 0
-// and nowhere else, so a noun stressed on its first syllable and a verb
+// The other half of the same rule: only the primary stress is stripped, and
+// only at position 0, so a noun stressed on its first syllable and a verb
 // stressed on its second stay two words — which is the whole distinction
-// RL-51 exists to draw.
-test("RL-51: `imprint` and its four kin still answer as two blocks", async ({ page }) => {
+// RL-51 exists to draw. `english` carries the same shape; `row` and its kin
+// are two sounds outright.
+test("RL-51: `imprint` and its eight kin still answer as two blocks", async ({ page }) => {
   await deleteTranslator(page);
   await loadDictionary(page);
 
-  for (const word of ["imprint", "invite", "mandate", "canton", "koine"]) {
+  for (const word of ["imprint", "invite", "mandate", "koine", "english", "row", "tear", "bass", "lead"]) {
     await answer(page, word);
     expect((await blockHeads(page)).length, word).toBe(2);
   }
@@ -247,4 +249,22 @@ test("RL-51: the no-entry breakdown never groups — `row` inside a phrase draws
   await expect(page.locator("main [data-pronunciation-block]")).toHaveCount(0);
   await expect(page.getByText("/rɑː/", { exact: true })).toHaveCount(0);
   await expect(page.getByText("/ɹaʊ/", { exact: true })).toHaveCount(0);
+});
+
+// The same principle one level down: a sense keeps its own IPA line only
+// where it is a different *sound* from its label row's, not a different
+// spelling. `mass` drew `/ˈmæs/` over its noun row and `/mæs/` again on the
+// second sense under it; `god` and `majesty` carried the same dead line.
+test("RL-51: a sense draws no IPA line of its own where the sound is the one already named", async ({
+  page,
+}) => {
+  await deleteTranslator(page);
+  await loadDictionary(page);
+  await answer(page, "mass");
+
+  // `mass` draws three label rows — adjective, noun, verb — and the asset
+  // writes the noun's stress and the other two without it. One line each,
+  // and no fourth repeating the noun's sound inside a sense.
+  await expect(page.getByText("/mæs/", { exact: true })).toHaveCount(2);
+  await expect(page.getByText("/ˈmæs/", { exact: true })).toHaveCount(1);
 });
