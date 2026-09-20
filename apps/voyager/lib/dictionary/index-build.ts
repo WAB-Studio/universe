@@ -11,6 +11,14 @@ export type Sense = {
 
 export type SenseGroup = { headword: string; senses: readonly Sense[] };
 
+// RL-51: one pronunciation's senses, gathered out of a group carrying more
+// than one. `ipa` is what heads the block on screen, and null on the block
+// that gathers the senses carrying no pronunciation — `can` and `pace` are
+// the only two headwords in the asset where that block shares an entry with
+// named ones, both because normalising folds a proper noun (`CAN`, `PACE`)
+// into the word.
+export type PronunciationBlock = { ipa: string | null; senses: readonly Sense[] };
+
 // Opaque to callers: reach it only through buildIndex, groupFor, lookupWord
 // and suggest. byHeadword and sortedHeadwords answer a lookup and a prefix
 // search without ever re-scanning the entries array.
@@ -140,4 +148,78 @@ export function groupFor(
     .map((offset) => senseFromEntry(index.entries[offset]))
     .sort((a, b) => compareSenses(order, pinnedPos, a, b));
   return { headword: normalisedHeadword, senses };
+}
+
+// Syllable dots, tie bars, parentheses, spacing and the secondary stress
+// mark: notation the asset spends freely and a reader hears nothing of.
+const IPA_NOTATION = /[.\u0361()\s\u02cc]/gu;
+
+// A primary stress mark at the very start of the transcription, opening
+// delimiter and all — `/ˈhoʊp/` and `[ˈhoʊp]` alike.
+const LEADING_PRIMARY_STRESS = /^([/[]?)\u02c8/u;
+
+// What two pronunciations are compared on. Never what is drawn: the IPA on
+// screen is always the one the asset carries.
+//
+// The asset writes one sound several ways — `hope` carries `/hoʊp/` beside
+// `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` beside `/ˈdeɪ.zi/`, `canton` `/ˈkæntɒn/`
+// beside `/ˈkænˌtɒn/` — and a block per spelling tells the reader that two
+// identical sounds differ. Measured 2026-09-20 over the shipped asset: 19
+// of the 190 headwords split on a notation accident alone.
+//
+// Only the *primary* stress is a distinction, and only where it falls. The
+// mark goes at position 0, where a word with one stress is not distinguished
+// by whether the asset wrote it, and stays inside the word, where it is the
+// whole distinction: `imprint` /ɪmˈpɹɪnt/ against /ˈɪm.pɹɪnt/, and `invite`,
+// `mandate`, `koine`, `english` — noun against verb, the homographs RL-51
+// exists to separate. A secondary mark never carries that distinction, so it
+// goes with the notation above: `canton`, `facebook` and `thanksgiving`
+// stress the same syllable either way.
+export function ipaKey(ipa: string): string {
+  return ipa.replace(IPA_NOTATION, "").replace(LEADING_PRIMARY_STRESS, "$1");
+}
+
+// A group's senses gathered by pronunciation, without reordering the entry:
+// blocks come in the order their own first sense already had, and inside a
+// block the senses keep the order groupFor gave them. A sense with no IPA
+// gathers with the other senses that have none, into a block nothing heads.
+// A block wears its own first sense's spelling: no headword in the asset
+// carries two spellings of one sound beside a second sound (measured
+// 2026-09-20, zero of 58,944), so nothing under a head contradicts it.
+function gatherByIpa(senses: readonly Sense[]): PronunciationBlock[] {
+  const blocks: PronunciationBlock[] = [];
+  const openByKey = new Map<string | null, Sense[]>();
+  for (const sense of senses) {
+    const key = sense.ipa === null ? null : ipaKey(sense.ipa);
+    const open = openByKey.get(key);
+    if (open) {
+      open.push(sense);
+      continue;
+    }
+    const started = [sense];
+    openByKey.set(key, started);
+    blocks.push({ ipa: sense.ipa, senses: started });
+  }
+  return blocks;
+}
+
+// RL-51: one block per pronunciation, or null when the group carries no more
+// than one and the screen must draw exactly what it drew before — 58,773 of
+// 58,944 headwords, `leave` and `grudge` among them, and `hope` and `daisy`
+// since the grouping started comparing sounds rather than spellings.
+//
+// The pronunciation of whichever sense groupFor put first heads the entry and
+// the rest follow their own first sense, so no headword changes which sense
+// leads it: nothing in the asset ranks a pronunciation, so nothing here
+// invents a rank. Inside a block RL-43's frequency order and RL-47's pinned
+// category still govern, untouched — gathering only moves a sense past the
+// ones it was already interleaved with.
+//
+// Senses with no IPA are counted by neither test: one pronunciation beside a
+// null is still one pronunciation, and grouping it would draw a head over
+// half an entry that reads the same without one.
+export function pronunciationBlocks(senses: readonly Sense[]): PronunciationBlock[] | null {
+  const blocks = gatherByIpa(senses);
+  const named = blocks.filter((block) => block.ipa !== null);
+  return named.length > 1 ? blocks : null;
 }

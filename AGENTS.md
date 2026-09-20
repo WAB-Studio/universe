@@ -24,6 +24,9 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
 - Dispatch the `mutator` before closing a slice, once the validator is green. It breaks the lines the
   branch itself changed and reports what no suite noticed. A survivor is a regression that ships in
   silence.
+- Dispatch the `test-critic` on a suite, never on a branch. It says what a green run really promises:
+  which assertions cannot fail, which surfaces nobody drives, and which facts are paid for twice.
+  `mutator` judges the lines a branch changed; only this one judges the suite as a whole.
 - Put the critic's questions to the user, in their own words. Never answer one for them.
 - Never close a slice on a report of greens alone. A slice with no criticism in it was not reviewed.
 - Keep plans in `private/`.
@@ -121,6 +124,11 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
   lane copied `node_modules` at birth, so the new package has no link and `typecheck` fails there
   while the main checkout and CI are clean. It is not a real red.
 - Run at most three suites at once. Nine GB of RAM holds three dev servers and three Chromiums.
+- Never run two agents that write `reading.word_texts` or spend `reading.model_spend` at once.
+  `HARNESS_LANE` does not scope those tables: they are global, and two honest reports then
+  contradict each other. See `docs/TRAPS.md`, "One database behind every harness lane".
+- Read `npx vercel env ls production --project reading` before believing a slice shipped. The
+  paid routes answer 204 when a key is missing, so a dark feature looks like a working one.
 - Run `harness:census` from the main checkout when the lane is single-app. A lane opened with
   `--app voyager` copies no `apps/orbit/.env.local`, so `npm run harness:census -w apps/orbit` dies on
   a missing env file there. Both checkouts share one database, so the number is the same.
@@ -160,11 +168,29 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
 - Read `gh auth status` before blaming a PR. This machine holds two accounts and the active one
   changes; only one has the scope to merge. A `does not have the correct permissions` on a green,
   mergeable PR is the account, not the branch.
-- Check a branch is merged against the branch its PR targets, never against HEAD and never against a
-  name this file hardcodes. Since 2026-09-08 a module's PR targets `integracion`; before that they
-  targeted `main`. From a checkout sitting on neither, `git branch -d` calls merged branches unmerged. Read the
-  base with `gh pr view <n> --json baseRefName`, then
-  `git merge-base --is-ancestor <branch> <base>` before `-D`.
+- **Ask GitHub whether a branch landed. `--is-ancestor` cannot tell you.** `gh pr merge --squash`
+  replays the branch as one new commit on the base, so the branch's own commits are never ancestors
+  of anything: `git merge-base --is-ancestor <branch> <base>` returns false for **every** squashed
+  branch, merged or not. Read the truth with
+  `gh pr list --state merged --limit 300 --json number,headRefName,baseRefName` and delete the
+  branches whose `headRefName` is in it.
+  - Measured 2026-09-20: 206 merged pull requests, 0 open, and **87 remote branches still alive**.
+    `--is-ancestor` called 5 of 24 local branches merged; GitHub called 83 of 87 remote ones merged,
+    and the seven the ancestry test called live were each verified landed by their own content —
+    the `RL-36` retirement, `RL-49`, and two documentation branches whose paragraphs are in
+    `DESIGN.md` and `TRAPS.md` today. **This rule is why nothing was ever deleted.** The rule said
+    check ancestry, the repo merges by squash, so every session read «unmerged» and moved on.
+  - A branch with no merged PR is not automatically dead. Check its content before deleting it:
+    `ruta-definir` held a schema sketch for `RL-29`, which is retired and was never built.
+  - `git merge-base --is-ancestor` still answers the one question it can: whether a branch was
+    merged **without** a pull request, which is how a few local-only branches landed.
+- Check against the branch its PR targets, never against HEAD and never against a name this file
+  hardcodes. Since 2026-09-08 a module's PR targets `integracion`; before that they targeted `main`.
+  Read the base with `gh pr view <n> --json baseRefName`.
+- **Fetch before you compare.** A local `main` nobody updated is not `origin/main`. Measured the same
+  day: this checkout's `main` had sat at the 2026-09-10 merge for nine days, 81 commits behind, and
+  a session reported `integracion` as 93 commits ahead of `main` when it was 14.
+- Delete a branch the day its PR merges. Report it.
 - Do git work without asking: commit, push, open a PR, merge, delete a branch. Report it.
 - **Point every PR at `integracion`. Never at `main`.**
 - **Take `integracion` to `main` once per slice, at most once a day.** That merge is the deploy.

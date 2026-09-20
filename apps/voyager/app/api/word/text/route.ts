@@ -5,13 +5,18 @@ import path from "node:path";
 
 import { normaliseHeadword } from "@/lib/dictionary/format";
 import type { DictionaryPayload } from "@/lib/dictionary/format";
-import { buildIndex, groupFor, type DictionaryIndex, type SenseGroup } from "@/lib/dictionary/index-build";
+import { buildIndex, groupFor, type DictionaryIndex } from "@/lib/dictionary/index-build";
 import { env } from "@/lib/env";
 import { generateWordText, MODEL_NAME } from "@/lib/word/model";
 import { textRequestSchema, textResponseSchema } from "@/lib/word/protocol";
 import { claimDailyCall } from "@/lib/word/spend";
-import { markTranslationsAsked, readCachedText, writeCachedText } from "@/lib/word/text-cache";
-import { isThinAnswer } from "@/lib/word/thin";
+import {
+  markTranslationsAsked,
+  readCachedText,
+  translationsWereFound,
+  writeCachedText,
+} from "@/lib/word/text-cache";
+import { inflectionReallyMovedReader, isInflectionDisagreement, isThinAnswer } from "@/lib/word/thin";
 
 // RL-41 and RL-42's decoration: no reader session reaches this route, the
 // cache is keyed on the headword alone (`db/schema/word-texts.ts`), and its
@@ -51,22 +56,6 @@ function loadDictionaryIndex(): DictionaryIndex {
   return dictionaryIndex;
 }
 
-// The dictionary's own translations for the model's prompt, flattened
-// across senses and de-duplicated in the order the entry already lists
-// them — never the model's job to know what the asset already said.
-function dictionaryTranslations(group: SenseGroup): string[] {
-  const seen = new Set<string>();
-  const translations: string[] = [];
-  for (const sense of group.senses) {
-    for (const translation of sense.translations) {
-      if (seen.has(translation)) continue;
-      seen.add(translation);
-      translations.push(translation);
-    }
-  }
-  return translations;
-}
-
 export async function POST(request: Request): Promise<Response> {
   let raw: unknown;
   try {
@@ -80,30 +69,38 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "invalid" }, 400);
   }
 
+  const index = loadDictionaryIndex();
   const headword = normaliseHeadword(parsed.data.headword);
-  const group = groupFor(loadDictionaryIndex(), headword);
+  const group = groupFor(index, headword);
   if (!group) {
     return json({ error: "invalid" }, 400);
   }
 
-  // RL-45's own decision, over this route's own group — the client sends no
-  // flag, and none it sent would be trusted over this.
-  const thin = isThinAnswer(group);
+  // RL-45's own decision, over this route's own group and its own re-check
+  // of the client's `surface`/`rule` pair — the client sends a claim, never
+  // a flag, and a claim that does not hold up is treated as a plain lookup.
+  const { surface, rule } = parsed.data;
+  const disagrees =
+    surface !== undefined &&
+    rule !== undefined &&
+    inflectionReallyMovedReader(index, headword, surface, rule) &&
+    isInflectionDisagreement(group, rule);
+  const thin = isThinAnswer(group) || disagrees;
 
   const cached = await readCachedText(headword);
   if (cached) {
     let translations = cached.translations;
     // A thin word never asked, or asked before this column existed:
-    // enrich it in place, at most once per row, whatever the model
-    // returns. The cap guards this ask too, but never at the cost of the
+    // enrich it in place, at most once per row a translation actually
+    // lands. The cap guards this ask too, but never at the cost of the
     // answer already cached — over it, or with the model off, the row's
     // definition and example still return; only the enrichment is
-    // skipped, and it stays open for a later lookup since the flag moves
-    // to `true` only once an ask actually runs.
+    // skipped, and it stays open for a later lookup whether the ask never
+    // ran or ran and came back empty.
     if (thin && !cached.translationsAsked && env.OPENAI_API_KEY && env.WORD_TEXT_DAILY_CALL_CAP) {
       const calls = await claimDailyCall();
       if (calls <= env.WORD_TEXT_DAILY_CALL_CAP) {
-        const generated = await generateWordText(headword, false, dictionaryTranslations(group));
+        const generated = await generateWordText(headword, false, group.senses);
         translations = generated?.translations ?? null;
         await markTranslationsAsked(headword, translations);
       }
@@ -139,13 +136,16 @@ export async function POST(request: Request): Promise<Response> {
 
   // RL-45 rides this same call when the entry is thin — no second call, so
   // no second daily-cap claim for the one lookup.
-  const generated = await generateWordText(headword, wantDefinition, thin ? dictionaryTranslations(group) : null);
+  const generated = await generateWordText(headword, wantDefinition, thin ? group.senses : null);
   if (!generated) {
     return empty(204);
   }
 
   const definition = wantDefinition ? generated.definition : null;
   const translations = thin ? generated.translations : null;
+  // A thin word whose call comes back empty stays open, the same rule
+  // `markTranslationsAsked` applies to the re-enrichment path: `thin`
+  // alone answers "did we ask", never "is the ask closed".
   await writeCachedText(
     headword,
     MODEL_NAME,
@@ -153,7 +153,7 @@ export async function POST(request: Request): Promise<Response> {
     generated.example.en,
     generated.example.es,
     translations,
-    thin,
+    translationsWereFound(translations),
   );
 
   return json(

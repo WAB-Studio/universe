@@ -1797,12 +1797,22 @@ caller's input.** Put the equality check between them, or gate the raw string.
 
 ## `linkInvalid` is a 504 the reader is told is a broken link
 
-The `redirected to .../cuenta?error=linkInvalid` intermittent has fired five times —
+The `redirected to .../cuenta?error=linkInvalid` intermittent has fired six times —
 `sync.spec.ts:326` and `registro.spec.ts:348` on 2026-09-11, `offline.spec.ts:177` on CI three
-times on 2026-09-12. Three footprints survive, all off CI where a passing rerun cannot wipe them:
+times on 2026-09-12, and `sync.spec.ts:326` again on 2026-09-14, on the push to `main` that
+deployed `#187`. Four footprints survive, all off CI where a passing rerun cannot wipe them:
 **`private/flake-linkinvalid-offline-177/`**, the second under `sample-2-run-34712443635/`, and the
 third in **`private/flake-linkinvalid-183/`** (run `34731134348`, PR #183), which carries the
-server log beside the error context.
+server log beside the error context. The fourth is
+**`private/huellas/2026-09-14-sync-linkInvalid-main/`** (run `34805645831`), pulled from the run's
+own artefacts — `voyager-playwright-results` and `voyager-log` — while the run was still going,
+which is how to get one off CI without waiting.
+
+**The fourth footprint reproduces the arithmetic a third time, on `main` itself.** Two
+`magic link verification failed` lines in the whole run, one `Gateway Timeout` with `status: 504`
+and `code: undefined`, one `otp_expired`; `sync.spec.ts:643` passed in that same run and accounts
+for the `otp_expired` in full, so the failing test logged only the 504. 175 passed, 1 failed. The
+push carried nineteen commits and none of them touch the auth path.
 
 **The third footprint reproduces the second exactly**: two `magic link verification failed` lines in
 the whole run, one `AuthRetryableFetchError: Gateway Timeout` with `status: 504` and one
@@ -1873,6 +1883,61 @@ right length still fits. Reopen this with a reason, not a hunch.
 
 **And do not read a clean gate as a clean route.** `source` carries the same exposure: `admitWord`
 checks ASCII shape, so plain lowercase English words pass whatever they spell.
+
+## Una clave ausente apaga una ruta de pago en silencio, y la pantalla dice «no se pudo responder»
+
+Read from Vercel on 2026-09-12, project **`reading`** (not `voyager` — the CLI needs
+`--project reading`). Production carries **seven** environment variables:
+
+```
+NEXT_PUBLIC_SITE_URL  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  NEXT_PUBLIC_SUPABASE_URL
+DATABASE_URL  MIGRATION_DATABASE_URL  TRANSLATE_MYMEMORY_EMAIL  TRANSLATE_MYMEMORY_KEY
+```
+
+**`OPENAI_API_KEY` is not among them.** Neither is `WORD_TEXT_DAILY_CALL_CAP`,
+`WORD_UNLISTED_DAILY_CLIENT_CAP`, `CLIENT_KEY_SALT`, `PHRASE_NOTES_DAILY_CALL_CAP`,
+`PHRASE_NOTES_DAILY_CLIENT_CAP`, `GEMINI_API_KEY` or any `SUPABASE_STORAGE_*`.
+
+**Every paid route is written to answer 204 when a key is missing** — one shape for absence, by
+design (`app/api/word/unlisted/route.ts:95-100`). The screen draws that 204 as «no se pudo responder
+por internet». So the routes do not crash, do not log, and do not appear broken: **they are simply
+off, and the reader sees the app exactly as it was before any of this was built.** RL-41, RL-42,
+RL-44, RL-45, RL-46, generated definitions, generated examples and word photos are all dead in
+production and have been for as long as the keys have been absent.
+
+**They are missing from `apps/voyager/.env.local` too**, which is why a critic driving the built app
+had to start the server with the variables by hand to see a single network answer.
+
+**Check the environment before believing a slice shipped.** Fifteen modules went green, merged, and
+deployed while the feature they built could not run. `npx vercel env ls production --project reading`
+is one command and it is the difference between "shipped" and "shipped and dark".
+**La lista de arriba caducó, y por eso la trampa vale.** Medido de nuevo el 2026-09-20 con
+`npx vercel env ls production --project reading`: producción lleva **trece** variables.
+`CLIENT_KEY_SALT` y los cuatro topes entraron hace cinco días; **`OPENAI_API_KEY` entró hace diez
+horas** y su primer gasto quedó en `reading.model_spend` el 2026-09-19 con `calls: 3`. Siguen
+ausentes `GEMINI_API_KEY` y todo `SUPABASE_STORAGE_*` — este último a propósito, porque RL-36 se
+retiró entera.
+
+Ocho días corrió la app con esas rutas apagadas y **nadie lo vio desde dentro**, porque un 204 por
+clave ausente es indistinguible de un 204 por respuesta vacía. Lo que caduca es la lista; lo que no
+caduca es que hay que leerla antes de creer que una rebanada llegó.
+
+## One database behind every harness lane: `word_texts` and `model_spend` are not lane-scoped
+
+`HARNESS_LANE` gives a track its own identities, session files and seeded rows. **It does not give it
+its own `reading.word_texts`, `reading.word_answers` or `reading.model_spend`.** Those are global,
+keyed by headword and by calendar day.
+
+Measured 2026-09-12: a validator on lane 4 and a critic on lane 5 ran at the same time against the
+same Supabase project. The critic watched `reading.word_texts` **lose 8 rows** and
+`translations_asked` drop from 12 to 1 while it was measuring, and reported a `snuff` row state that
+the other lane had written seconds earlier. Both agents reported honest numbers; **the numbers
+contradicted each other because the table underneath was shared.**
+
+**Never run two agents that write `word_texts` or spend `model_spend` at the same time.** Reading is
+fine. Writing is not: their footprints become unattributable, and a report that says "I left the
+database as I found it" cannot be checked. Serialise them, or give each one headwords no other lane
+will touch and say so in the dispatch.
 
 ## Vercel installs one workspace, so a hoisted dependency is invisible until the deploy
 
@@ -1966,3 +2031,72 @@ con la barrida desactivada la spec se pone roja en el `poll` de la línea 66.
 
 **Lo que hay que recordar:** un chunk cacheado no caduca nunca por su cuenta, y el nombre del cache
 no se entera de que desplegaste. Si el worker no cambia, el dispositivo se queda donde estaba.
+
+## Un migrador corrido desde la rama equivocada no aplica nada y dice que sí
+
+Medido el 2026-09-19, cerrando RL-36. `npm run db:migrate -w apps/voyager` terminó en
+`migrations applied successfully!` y **la base no cambió**: `to_regclass('reading.word_photos')`
+seguía devolviendo la tabla y `model_spend` conservaba su columna `photos`.
+
+La causa es que el comando se corrió desde el checkout principal, que estaba en una rama anterior a
+la migración. En ese árbol no existían `db/migrations/0003_small_daredevil.sql` ni su entrada en
+`meta/_journal.json`, así que drizzle aplicó lo que veía — nada — y reportó éxito con toda razón.
+**El migrador lee el árbol, no la rama que crees tener.**
+
+El éxito de `db:migrate` no es una medida. Lee la base después:
+
+```
+select to_regclass('reading.word_photos');
+select column_name from information_schema.columns
+where table_schema = 'reading' and table_name = 'model_spend';
+```
+
+Corrido desde el carril que sí tenía el fichero, la migración cayó y esas dos consultas cambiaron.
+Con una base compartida por todos los carriles y por producción, el fallo silencioso va en la
+dirección amable — no aplicar — pero la inversa es la misma trampa: un carril viejo puede aplicar
+una migración que otra rama ya renumeró.
+
+## `.next/types/validator.ts` sobrevive a la ruta que describe
+
+Medido tres veces el 2026-09-19, en tres árboles distintos, tras retirar `/api/word/photo`:
+
+```
+.next/types/validator.ts(134,39): error TS2307: Cannot find module '../../app/api/word/photo/route.js'
+```
+
+`tsgo` lee los tipos generados por una corrida anterior a que la ruta muriera. **No es una
+regresión y no hay nada que arreglar en el código.** `rm -rf .next && npx next typegen`, o
+cualquier `next build`, lo borra. `.next` no está versionado, así que no deja rastro en el árbol.
+
+Cuesta minutos cada vez que alguien lo lee como un rojo suyo: lo tropezaron el worker del módulo 8,
+su validador y el rebase de RL-49.
+
+## Un censo sobre el asset crudo no dice lo que la pantalla dibuja
+
+Medido el 2026-09-20, escribiendo el contrato de `RL-51`. La misma pregunta — cuántas cabeceras
+llevan más de una pronunciación — da dos respuestas según por dónde se mida:
+
+| | sobre `entries` del asset | por `buildIndex` + `groupFor` |
+|---|---|---|
+| cabeceras | 59.253 | **58.944** |
+| con >1 IPA | 105 | **190** |
+| entreveradas | 11 | **26** |
+| con una acepción sin IPA | 0 | **2** (`can`, `pace`) |
+
+Dos diferencias lo explican, y las dos están en el camino que la pantalla recorre de verdad:
+
+- **`normaliseHeadword` minusculiza antes de que `buildIndex` indexe nada**
+  (`lib/dictionary/format.ts:60`). `CAN` y `can` son una cabecera, no dos. De ahí salen las
+  siglas sin IPA que el censo crudo jura que no existen.
+- **`groupFor` ordena por `RL-43` antes de que se dibuje una acepción.** «Entreverado» es una
+  propiedad del orden de la pantalla, y el asset se guarda en otro.
+
+**Lo que costó:** las tres cifras entraron en `docs/voyager/SPEC.md` y en `docs/voyager/DESIGN.md`
+como hechos medidos, y un worker salió despachado sobre la de en medio — «ninguna acepción trae el
+IPA en nulo, así que no construyas estado huérfano». Sí lo traen, dos. Lo encontró el worker al
+implementarlo, no la revisión. El censo barato además se dejó `bass`, `desert`, `minute`, `polish` y
+`subject`: los cinco mejores ejemplos de la palabra que el cambio existe para arreglar.
+
+**La regla:** mide la afirmación sobre una pantalla por la función que alimenta esa pantalla. Si la
+afirmación habla de cabeceras, pásala por el índice; si habla de orden, pásala por el comparador.
+Un `JSON.parse` del asset y un `Map` a mano responden otra pregunta parecida y más barata.

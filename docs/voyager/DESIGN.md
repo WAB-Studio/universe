@@ -120,7 +120,11 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   2026-09-07. Checked 2026-09-08: the published canvas contains the string `Noche` zero times.
   Nothing on it contradicts this file any more.
 - When a board and this file disagree, **this file wins**.
-- **The canvas is 142 boards**, counted 2026-09-12 from **version 33**'s own `appifact-doc` block
+- **The canvas is 144 boards**, counted 2026-09-13 from **version 34**'s own `appifact-doc` block
+  (145 `.dc.html` files plus `canvas.json`). The two added are RL-49's, `CuentaEnlaceNoVerificado`
+  and `CuentaEnlaceInvalido`, side by side on the `cuenta` page so the pair reads as the comparison
+  it is. Primary face only, no second face, and one shared annotation.
+- **The canvas was 142 boards**, counted 2026-09-12 from **version 33**'s own `appifact-doc` block
   (143 `.dc.html` files plus `canvas.json`). The one added is RL-44's fourth state,
   `SinResultadoIASinDefinicion`, on the primary face and with no second face.
 - **The canvas was 141 boards**, counted 2026-09-11 from **version 32**'s own `appifact-doc` block
@@ -244,6 +248,28 @@ Measured over the built asset, 64,258 entries. Design for these, not for the rar
   for a token with a case-insensitive match — they are written lowercase (`#14130f`).
 
 ## Settled
+
+- **A sign-in link that fails says which of the two failures it was, and only the spent one sends the
+  reader for a new email. Decided by the user 2026-09-13** (RL-49), from the boards
+  `CuentaEnlaceNoVerificadoOscuroMovil` and `CuentaEnlaceInvalidoOscuroMovil`.
+  - The two boards are the same screen twice and differ in two sentences, because those two
+    sentences are the whole decision.
+  - **Timeout:** «No pudimos comprobar el enlace» over «Falló de nuestro lado, no del enlace. Ábrelo
+    otra vez desde el correo; si tampoco entra, pide uno nuevo aquí.»
+  - **Spent or expired:** «El enlace no vale o ya venció» over «Pide uno nuevo aquí abajo. Cada
+    enlace sirve una sola vez y dura una hora.»
+  - **The timeout copy promises nothing about the link.** `docs/TRAPS.md` measured that a 504 says
+    nothing about whether the token was spent, so the text names the failure as ours and orders the
+    two recoveries — reopen first, ask for another second — without claiming the link survived.
+    Every email this saves is a real send from the user's own Gmail.
+  - **No retry control of its own, on the user's decision.** A «Reintentar» button carrying the same
+    `token_hash` was drawn in the question and refused: the form below is the retry everywhere else
+    in Cuenta, and a button that lands on «no vale» when the token did burn teaches the reader less
+    than the sentence does.
+  - **No red, and no second face.** The break is the hairline and full-weight ink, per "Failure"
+    above; light is this file's token table applied to the dark board and needs no drawing.
+  - **No board draws the tab row**, here or in any other `Cuenta·` board — it is drawn in
+    `CuentaInformacion*` and taken for granted in the rest.
 
 - **A word the dictionary carries is answered first, and the form it also inflects from is offered
   underneath — never instead of it. Decided by the user 2026-09-10**, written as `RL-40`, which
@@ -1248,6 +1274,46 @@ them a case `RL-43`'s table would also get wrong:
   - **No new screen, and no board.** `/registro` draws a recorded lookup; this adds rows to it, not a
     view. The user was offered a «what I could not answer» screen and did not take it.
 
+### A model prunes the padded lists, lazily, and demotes rather than deletes. Decided by the user 2026-09-12
+
+**This does not overturn «Pruning the dictionary was measured and refused» above. It is a different
+mechanism.** What was refused there was mechanical trimming at asset-build time — cut every group to
+five, drop a gloss that echoes the headword, drop a gloss of three words or more — and a corpus-wide
+reorder. All of those stay refused, for the reasons measured that day. What is decided here is
+**asking the model already in use to judge each gloss**, which no measurement had tried.
+
+**Why a mechanical rule cannot do this, measured 2026-09-12.** The asset's own statistics cannot tell
+a bad gloss from a rare good one, because the bad ones are common Spanish words used in another
+sense and the good rare ones are genuinely rare:
+
+- Marking glosses that appear once in the whole asset would delete **`abolir`** (`abolish`) and
+  **`rapé`** (`snuff`), both correct.
+- Ordering by frequency within the asset **promotes `polla` from seventh place to third** in `hoot`,
+  because `pera` and `polla` are common words elsewhere. It leaves the screen worse than it found it.
+
+**What the model does, measured over 7 real `gpt-5-nano` calls.** It drops `bacilongo`, `bacilón`,
+`pera`, `polla` («vulgar slang; not appropriate») and `vacilón` from `hoot`; it drops `clamp` listed
+as a translation of `clamp`; it catches the asset's own typos (`a jierro`) and invented terms
+(`asuso`, `suso`) — **and it keeps `abolir`**, the exact gloss the cheap rule would have destroyed.
+
+**It is wrong about one in seven, and the design answers that.** It dropped **`despabilar`** from
+`snuff`, which is correct — to snuff a candle is to trim its wick.
+
+- **The pruned gloss is demoted, never deleted.** It moves to the end of its sense's list, behind
+  what survived. A wrong call costs a place in the order, not a translation.
+- **A floor: never leave a sense with fewer than two glosses drawn.**
+- **The prune runs when a reader first looks at that word, and is cached for everyone after.** Not a
+  build step and not a batch: of the 3,339 lemmas shaped like a dump, a real reader's 43-minute
+  sitting touched a handful. The first reader of a word pays the call; nobody pays it twice.
+
+**The shape this applies to**, measured the same day: a sense with **no definition** carrying **five
+or more glosses** — `hoot`'s noun group exactly. **3,339 of 58,944 lemmas (5.7 %)**, agreeing with
+the 5.9 % of groups over five measured above. **All 3,339 are `thin=false`, so `RL-45` reaches none
+of them**: this is why the case needs its own answer and not a wider `RL-45`.
+
+**Board: none drawn yet.** This changes what a reader sees — the order of a sense's glosses — so it
+needs one before any worker writes it. It is not built.
+
 ### The word photo is retired, 2026-09-14
 
 The user's own words: «no me interesan las imágenes, habíamos decidido sacarlas y al parecer ahora
@@ -1271,3 +1337,180 @@ answered `204` for every word outside the 26 rows already cached. Five decisions
    buys nothing.
 
 Numbers 2 and 5 are decisions to do nothing, written down so the next session does not reopen them.
+
+### The model judges what the provider's memory returns, 2026-09-20
+
+`RL-50`. The user was shown three mechanisms and took this one. What ruled the other two out is in
+`docs/voyager/SPEC.md` under the code; what belongs here is the shape it leaves on the screen.
+
+**Two boards do not exist, and this slice cannot be dispatched without them.**
+
+1. **Every candidate refused.** The reader typed a phrase, the provider answered, and nothing
+   survived the judgement. It is not «no se pudo responder por internet» — the network worked. The
+   screen has no state today that says *answered, and withheld*, and inventing one in code is
+   exactly the decision this rule exists to take on the canvas first.
+2. **The judgement in flight.** The model's call sits between the provider's answer and the draw, so
+   the phrase now waits on two round trips instead of one. Whether that wait shows, and as what, is
+   a design decision and not an implementation detail.
+
+**What is already decided and needs no board:** a translation that passes is drawn exactly as it is
+drawn today. The judgement adds nothing to the screen when it says yes.
+
+### The pronunciation groups the entry, above the part of speech, 2026-09-20
+
+`RL-51`. The user brought a screenshot of `row` — five sense groups, 22 lines of translation, four English
+definitions — and asked whether the model already generating text should order the lists and fold
+them away. **Measured first, and the answer moved.**
+
+**`row` is not the shape the app answers.** Of the app's **58,944** indexed headwords, **54,161
+carry one single sense (91.9 %)** and **50,288 carry three translations or fewer (85.3 %)**. Only
+**287 (0.49 %)** carry fifteen or more, and **30 (0.05 %)** carry twenty-five. A fold spent on the screen in the screenshot
+is a tap charged to the 92 %.
+
+**What makes that screen long is not padding.** `remo`, `fila`, `pelea`, `remar`, `pelear` are five
+different words sharing one spelling. Trimming them deletes meaning, not noise — which is the same
+thing «Pruning the dictionary was measured and refused» found, by a different route.
+
+**The lazy gloss prune does not answer this, measured the same day.** Its shape is *a sense with no
+definition carrying five or more glosses* (3,635 senses across the asset). In `row` it reaches
+**exactly one** — the `/ɹaʊ/` noun with «cisco, gresca, pelotera, pifostio, barullo, bulla» — and it
+demotes rather than deletes, so the screen loses **no line at all**. That decision stands unchanged
+and keeps its own shape; it simply is not this defect's fix.
+
+**The defect is that the entry is two words and the screen draws it as one.** `row` is `/rɑː/`
+(remo, fila, remar) and `/ɹaʊ/` (pelea, pelear). Senses sort by part of speech, so the two `/ɹaʊ/`
+senses land at **positions three and five of five**: a reader who met «a row» as a fight sweeps the
+whole screen twice. Grouping by pronunciation first puts them together and costs nothing — the IPA
+is already in the asset, no table, no call, no connection.
+
+**What it touches, measured 2026-09-20 through `buildIndex` and `groupFor` — the app's own path.**
+
+| | |
+|---|---|
+| Indexed headwords | **58,944** |
+| Carrying more than one named pronunciation | **190** |
+| Of those, interleaved in the order the screen draws | **26** |
+| Of those, carrying a sense with no IPA at all | **2** — `can`, `pace` |
+
+The twenty-six are `a`, `bass`, `bow`, `desert`, `earth`, `english`, `facebook`, `flush`, `frank`,
+`ham`, `italic`, `job`, `lead`, `less`, `mass`, `minute`, `mow`, `mush`, `parmesan`, `polish`,
+`renaissance`, `row`, `second`, `subject`, `sun` and `tear` — the homographs a reader of English
+actually meets.
+
+**The first census of this was wrong, and the way it was wrong is the lesson.** It was taken over
+the asset's raw entries, keyed on the headword as written and read in the order the file stores
+them. It returned **105, 11 and 0**, and it went into this file and into `SPEC.md` as fact. The app
+does neither of those things: `normaliseHeadword` lowercases before `buildIndex` keys anything, so
+`CAN` and `can` are one headword, and `groupFor` sorts by RL-43 before the screen sees a sense. On
+the app's own terms the numbers are **190, 26 and 2**. The cheap census missed `bass`, `desert`,
+`minute`, `polish` and `subject` — the five best examples the change exists for. **Measure a claim
+about a screen through the function that feeds that screen.**
+
+**The zero was the costliest of the three.** It was written here as the reason no orphan state
+needed designing, and a worker was dispatched on it. The real answer is two: `can` and `pace` each
+carry an acronym — `CAN`, and `PACE` for the Parliamentary Assembly of the Council of Europe — that
+normalisation folds into the word and that has no IPA of its own. **They gather into a block no
+pronunciation heads, drawn last. Decided by the user 2026-09-20**, over not grouping those two
+entries at all, and over dropping the acronym the way the one-character query already drops `b.`.
+That second option stays available and is a wider change than this one: it would touch which entries
+the dictionary admits, not how one screen draws them.
+
+**What that block really looks like, and what was accepted with it. Decided by the user 2026-09-20,
+on the critic's finding.** It is not «a block no pronunciation heads» in any way a reader can see:
+it is a block with no IPA line of its own, cut off from the one above by the same 1px hairline that
+rules two synonym lists apart. Nothing on the screen says the sound changed, so the acronym reads as
+a further sense of the block above it — `CAN` under `/ˈkæn/`, `PACE` under `/peɪs/`. The user took it
+knowing that, on two entries of 58,944, over inventing a head the asset cannot supply.
+
+**RL-43 keeps its job, narrowed.** Frequency still orders the parts of speech; it now orders them
+**inside** a pronunciation instead of across the entry. RL-47's suffix clause still outranks both.
+Nothing is retired: RL-43's own examples — `grudge`, `leave` — carry one pronunciation each and
+answer exactly as they answer today, as do the other 58,754 headwords.
+
+**The fold was not taken, and neither was hiding what the model prunes. Decided by the user
+2026-09-20.** The English definition keeps drawing open (2026-09-10 stands), and a pruned gloss
+keeps moving to the end of its list rather than off the screen, on the ground already measured:
+the model is wrong about one in seven, and a wrong call must cost a place in the order, not a
+translation.
+
+**Board: `PalabraPronunciacionOscuroMovil`.** One board, on the primary face. Light is the token
+table's own inversion and the desktop is the same column wider — neither is a decision this change
+takes.
+
+**Which pronunciation leads, and what heads its block. Decided by the user 2026-09-20, on the
+board.**
+
+- **The block order is the one that already falls out.** The pronunciation of whichever sense RL-43
+  puts first heads the entry; the rest follow in the order their first sense already had. No new
+  criterion is invented, because none is available: SUBTLEX scores `row` as a word, not as a
+  pronunciation, so nothing in the asset knows whether «remar» beats «pelear». The consequence is
+  deliberate — **no headword changes which sense leads it**; the scattered ones are only gathered.
+  Sizing the blocks by sense count was offered and refused: it measures the entry, not the use.
+  Asking the model was offered and refused: 190 calls to settle an order no reader asked for, and it
+  would take the answer off the device.
+- **The block head is the IPA alone**, in the metadata face — Plex Sans 15px, muted — and the
+  part-of-speech label underneath stops carrying an IPA of its own, because the head above already
+  named it. Repeating the headword per block (`row /rɑː/`) was refused: it draws the same word twice
+  on one screen. Numbering the blocks (`1 · /rɑː/`) was refused: it imports a paper dictionary's
+  convention the app uses nowhere else.
+- **A sense keeps its own IPA line only where it still differs from its block's**, which is the rule
+  `SenseDetail` already applies — inside a pronunciation block that case cannot arise, so the line
+  simply stops being drawn there.
+
+### The grouping compares sounds, not spellings, 2026-09-20
+
+`RL-51`, on the critic's findings. Six changes, all taken by the user that day.
+
+**A sound written two ways is one sound.** 19 of the 190 headwords that carried «more than one
+pronunciation» carried one, twice: `hope` as `/hoʊp/` and `/ˈhoʊp/`, `daisy` as `/ˈdeɪzi/` and
+`/ˈdeɪ.zi/`, `god` as `/ɡɑ(d)/` and `/ɡɑd/`, `canton` as `/ˈkæntɒn/` and `/ˈkænˌtɒn/`. Two blocks
+over them tell the reader that two identical sounds differ, which is worse than the interleaving
+RL-51 exists to fix. **Grouping now compares a normalised form** — syllable dots, tie bars,
+parentheses, spacing and the secondary stress mark dropped, and the primary stress mark dropped at
+position 0 alone — **and draws the IPA the asset carries, always.** The 19 that fold are `buffalo`,
+`calliope`, `canton`, `daisy`, `facebook`, `flora`, `god`, `ham`, `hope`, `iron curtain`, `john`,
+`majesty`, `mass`, `mercury`, `o`, `roger`, `thanksgiving`, `trinity` and `tyre`; the census falls
+from 190 and 26 to **171 and 23**.
+
+**The primary stress stays inside the word, and only there**, because there it is the distinction
+itself: `imprint` `/ɪmˈpɹɪnt/` against `/ˈɪm.pɹɪnt/`, and `invite`, `mandate`, `koine` and `english`
+— noun-stress against verb-stress, the homographs a reader of English actually meets. A general
+strip folds all five. **The secondary mark goes, though**, taken 2026-09-20 after the first pass kept
+it: it never carries that distinction, because both spellings that differ by one already agree about
+where the primary stress falls. It separated exactly three headwords — `canton`, `facebook` and
+`thanksgiving` — and all three are one word said one way.
+
+**A sense's own IPA line obeys the same rule.** `SenseDetail` drew a sense's IPA whenever it differed
+from its label row's, compared as text, so `god`, `majesty` and `mass` each carried a dead line: the
+same sound in another notation, under a row that had already named it. It is compared on the same key
+now, and those three lose that line. Decided by the user 2026-09-20: two notations of one sound are
+not two sounds, wherever the screen asks the question.
+
+**«Escuchar» says which pronunciation it speaks — in its label, drawing nothing. Decided by the user
+2026-09-20.** A visible IPA beside the glyph would be the third copy of one string on one screen: the
+first block's head already carries it, an arm's length below. The control mounts once per headword and
+`lib/speech/speak.ts` is handed the spelling, so the browser picks a pronunciation and the screen
+said nothing about which: a grouped entry claimed two sounds and offered one. The control now names
+the entry's **leading block** — the IPA drawn directly under the headword — in its own label. A
+second control was refused: both would take the same spelling and sound the same. An entry that
+draws no block names nothing extra; there is no second sound to be confused with.
+
+**The generated example names the block it belongs to.** RL-42's example is decoration resolved
+from the spelling alone and is drawn after the last block, so it read as that block's own: `row`
+closed with «Me gusta remar el bote» under `/ɹaʊ/`, the fight; `tear` with «no rasgar el vestido»
+under `/tiə/`, the teardrop — 5 of 5 measured. A line at its foot now names the pronunciation the
+example is about: the entry's leading one, the same sound «Escuchar» speaks, which is the sense the
+model writes for and was the right one in all 5. **The model is not asked which block it wrote for**
+— that would be 171 more calls and would take the answer off the device. **On a grouped entry
+alone**: an entry that draws no block gains nothing and is drawn untouched.
+
+**`pn` is a proper noun, not a pronoun.** `lib/dictionary/pos-frequency.ts` scores «p» for proper
+noun and `index-build.ts` maps it to `pn`, but the label read «pronombre»: **5,866 senses** — `Sol`,
+`Tierra`, `Job`, `Facebook`, `OMS`, `CAN` — were drawn as pronouns. The label was wrong, never the
+category; only the string changed.
+
+**The board carries it.** `PalabraPronunciacionOscuroMovil` was redrawn 2026-09-20 to hold the
+generated example's foot line, the voice control and the headless block, so the one thing here a
+reader sees that the first board did not show is drawn on the same board rather than a second one.
+The grouping rule, the control's label and the `pn` string add no pixels of their own: the label is
+the control's accessible name, and the part-of-speech label only reads differently.

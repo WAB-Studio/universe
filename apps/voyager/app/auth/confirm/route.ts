@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { env } from "@/lib/env";
+import { verifyMagicLink, type FailureReason } from "@/lib/auth/verify-magic-link";
 
 const supabaseConfig = {
   url: env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,9 +18,9 @@ const confirmSchema = z.object({
   type: z.enum(["magiclink", "signup", "email"]),
 });
 
-function invalidLink(request: NextRequest, headers: Headers): NextResponse {
+function failure(request: NextRequest, headers: Headers, reason: FailureReason): NextResponse {
   const url = new URL("/cuenta", request.url);
-  url.searchParams.set("error", "linkInvalid");
+  url.searchParams.set("error", reason);
 
   const response = NextResponse.redirect(url);
   headers.forEach((value, name) => response.headers.set(name, value));
@@ -37,17 +38,18 @@ export async function GET(request: NextRequest) {
 
   // The no-store directives `setAll` hands back have to ride on the redirect.
   const authHeaders = new Headers();
-  if (!query.success) return invalidLink(request, authHeaders);
+  // A parse failure never reached `verifyOtp`, so it is not a timeout.
+  if (!query.success) return failure(request, authHeaders, "linkInvalid");
 
   const supabase = await createSupabaseServerClient(supabaseConfig, authHeaders);
-  const { data, error } = await supabase.auth.verifyOtp({
-    type: query.data.type,
-    token_hash: query.data.token_hash,
-  });
+  const result = await verifyMagicLink(
+    (params) => supabase.auth.verifyOtp(params),
+    { type: query.data.type, token_hash: query.data.token_hash },
+  );
 
-  if (error || !data.user) {
-    console.error("magic link verification failed", error);
-    return invalidLink(request, authHeaders);
+  if (!result.ok) {
+    console.error("magic link verification failed", result.reason);
+    return failure(request, authHeaders, result.reason);
   }
 
   const response = NextResponse.redirect(new URL("/cuenta", request.url));

@@ -94,9 +94,108 @@ this gets built, and no schema, table or column is "prepared for" it.
     `faster` offers `fast`, `gone` offers `go`, `women` offers `woman`, `people` offers `person`.
     `word` offers nothing, so an answered query gains no clutter.
 
+- [x] **RL-51** — A headword whose senses carry more than one pronunciation answers in one block per
+  pronunciation, its IPA named once at the block's head, and RL-43's frequency order governs the
+  parts of speech **inside** a block rather than across the whole entry. `row` answers `/rɑː/` —
+  «remo, fila, remar» — and `/ɹaʊ/` — «pelea, pelear» — as two blocks, instead of leaving the two
+  `/ɹaʊ/` senses at positions three and five of five for a reader who met «a row» as a fight. It is
+  answered from the device and touches the network on no keystroke.
+  - **Two pronunciations are compared on their sound, never on their spelling.** The asset writes one
+    sound several ways — `hope` carries `/hoʊp/` and `/ˈhoʊp/`, `daisy` `/ˈdeɪzi/` and `/ˈdeɪ.zi/`,
+    `god` `/ɡɑ(d)/` and `/ɡɑd/` — and a block per spelling tells the reader that two identical sounds
+    differ. Syllable dots, tie bars, parentheses, spacing and the secondary stress mark are dropped
+    before the comparison, and the primary stress mark is dropped **at position 0 alone**. What is
+    drawn is always the IPA the asset carries; the normalised form decides grouping and nothing else.
+    A sense keeps an IPA line of its own under a label row on the same test: a different sound, never
+    a different spelling.
+  - **The primary stress is kept inside the word because there it is the distinction.** `imprint` is
+    `/ɪmˈpɹɪnt/` against `/ˈɪm.pɹɪnt/`, and `invite`, `mandate`, `koine` and `english` are the same
+    shape: noun-stress against verb-stress, the homographs this requirement exists to separate. A
+    general strip folds all five into one block. The **secondary** mark never carries that
+    distinction — it rides on a syllable both spellings already agree about — so it goes with the
+    notation: `canton`, `facebook` and `thanksgiving` are the only three headwords it separated, and
+    they fold.
+  - Measured 2026-09-20 through the app's own `buildIndex` and `groupFor`: of **58,944** indexed
+    headwords, **171 carry more than one pronunciation**, and **23 of those interleave** in the order
+    the screen really draws, after RL-43's sort. They are `a`, `bass`, `bow`, `desert`, `earth`,
+    `english`, `flush`, `frank`, `italic`, `job`, `lead`, `less`, `minute`, `mow`, `mush`,
+    `parmesan`, `polish`, `renaissance`, `row`, `second`, `subject`, `sun` and `tear`: the
+    homographs a reader of English actually meets.
+  - **19 headwords split on a notation accident alone and stop splitting**: `buffalo`, `calliope`,
+    `canton`, `daisy`, `facebook`, `flora`, `god`, `ham`, `hope`, `iron curtain`, `john`, `majesty`,
+    `mass`, `mercury`, `o`, `roger`, `thanksgiving`, `trinity` and `tyre`. They answer as they
+    answered before RL-51 — one entry, no block. `english` is not among them and keeps its two
+    blocks: its two spellings put the primary stress on different syllables.
+  - **Measure this on the normalised headword and on `groupFor`'s order, never on the raw asset.**
+    The asset's own keys are case-sensitive and its own order is not the screen's: measured that way
+    the same census reads 105, 11 and 0, and all three are wrong for this requirement. The app
+    lowercases before it indexes, so `CAN` and `can` are one entry.
+  - **Two headwords carry a sense with no IPA at all: `can` and `pace`.** Both are acronyms
+    normalisation folds into the word — `CAN`, and `PACE` for the Parliamentary Assembly of the
+    Council of Europe. They gather into a block drawn last that carries no IPA line of its own, under
+    the same hairline every other block is ruled apart with — so a reader takes it for a further
+    sense of the block above it. Accepted knowing that, by the user 2026-09-20, over not grouping
+    those two entries at all and over dropping the acronym outright.
+  - The other 58,773 headwords draw what they draw today: one pronunciation is no grouping. RL-43 is
+    not retired — `grudge` and `leave`, its own examples, carry one pronunciation each. The per-word
+    breakdown of a phrase the dictionary cannot answer never groups either: it carries translations
+    alone, so it names no pronunciation at all.
+  - **The voice control names the pronunciation it speaks.** `speak` is handed the spelling, so the
+    browser itself picks one of a grouped entry's sounds: the control says which — the entry's
+    leading block, the one drawn directly under the headword — instead of claiming two sounds and
+    offering one unnamed. It names it in the control's own label and draws nothing: the block head
+    under it already carries that IPA. A second control was refused: both would take the same
+    spelling and sound alike.
+  - **The generated example (RL-42) names the pronunciation it belongs to**, in a line at its foot,
+    on a grouped entry alone. It is resolved from the spelling, so it lands under whichever block the
+    entry draws last and reads as that block's own: `row` closed with «Me gusta remar el bote»
+    beneath `/ɹaʊ/`, `tear` with «no rasgar el vestido» beneath `/tiə/`, 5 of 5 measured 2026-09-20.
+    The model is asked nothing extra and no call is added.
+  - **Which block leads is not a new judgement.** The pronunciation of the sense RL-43 already put
+    first heads the entry, so no headword changes which sense leads it; the scattered ones are only
+    gathered. Nothing in the asset ranks a pronunciation, and nothing is asked over the network to
+    invent one.
+  - **Driven, not asserted, 2026-09-20.** `row` answers `/rɑː/` — remo, fila, remar — then `/ɹaʊ/` —
+    pelea, pelear. `can` draws its two pronunciations and then the acronym under a block nothing
+    heads. `leave`, `grudge`, `bed` and `sternly` draw no block at all, and `bed` still answers as
+    its own entry: RL-43 and RL-47 both hold inside the grouping.
+  - A mutator broke the lines the branch changed: 15 mutations, 14 killed, and the one survivor —
+    deleting the guard that keeps the `compact` breakdown from grouping — now has its own test. No
+    phrase any suite drives contains one of the grouped headwords, so that guard had been green by
+    accident of vocabulary.
+  - Board: `PalabraPronunciacionOscuroMovil`, drawn 2026-09-20 and redrawn the same day to carry the
+    example's foot line, the voice control and the headless block.
+
 - [ ] **RL-48** — A search that found nothing is recorded like any other the reader settled on, so the
   record holds what the dictionary could not answer and not only what it could. The same settling rule
   governs it: a word half-typed is never a row.
+- [x] **RL-49** — A sign-in link that does not let the reader in says which of the two things went
+  wrong. A link that is genuinely spent or expired is named as such, and the reader is sent to ask
+  for another. A verification that never completed — the auth gateway did not answer — is named as
+  ours, and the reader is sent to open the same link again before spending a new email on it. The
+  screen never calls a link invalid on the strength of a timeout, and nothing verifies again on the
+  reader's behalf: `verifyOtp` is not idempotent and a timeout says nothing about whether the token
+  was spent.
+- [ ] **RL-50** — A translation the provider's public memory supplies is judged before the reader
+  reads it, and sexual or obscene content is never drawn. The reader either gets a translation that
+  answers what they typed, or is told the phrase could not be answered — never the provider's
+  memory verbatim. A phrase the reader themselves typed is not the target: what is filtered is what
+  comes back, not what goes out.
+  - Measured 2026-09-20, `i love you`, `en|es`: `responseStatus: 200`, and
+    `responseData.translatedText` holds an explicit sexual sentence at `match: 1`, `quality: 74`.
+    It passes every gate `isUsableTranslation` applies — non-empty, not an echo, no warning prefix —
+    so `app/api/translate/route.ts:118-120` returns it and `bestAlternativeTranslation`, RL's own
+    fix for the empty primary field, is never reached.
+  - **Choosing by score cannot do this.** `te quiero` sits in `matches[1]` with the *same* `match: 1`
+    and the *same* `quality: 74`. The explicit entry wins on position alone, so no ordering by the
+    provider's own numbers separates them.
+  - **The model judges it. Decided by the user 2026-09-20**, over a length-disproportion rule and a
+    word list. Disproportion would have caught this one — 67 characters answering 10 — and misses a
+    short obscenity; a list has to be kept and vetoes the word when a reader looks it up on purpose.
+    The model is the same one already in use, and this is the second place it is asked to judge
+    content rather than produce it (`docs/voyager/DESIGN.md`, the lazy gloss prune).
+  - Not built. No board drawn for the state a reader sees when every candidate is refused.
+
 - [ ] **RL-07** — Autocomplete appears only while the string is being treated as a word. A sentence never raises it.
 - [x] **RL-26** — A headword's answer can be heard. The device speaks it with the voice the browser
   already carries, so a headword with no IPA is spoken exactly like one that has it. Decided by the
@@ -129,6 +228,15 @@ this gets built, and no schema, table or column is "prepared for" it.
   words lacking a definition — the example generates for every word looked up, so a word that already
   has a definition still costs one call. A cap that bites costs nothing: the reader gets the screen
   RL-35 already draws.
+
+  **The four numbers in production, kept by the user 2026-09-19.** `WORD_TEXT_DAILY_CALL_CAP` 500 is
+  the whole day's budget: the three model routes — this one, RL-44's unlisted word and RL-46's phrase
+  notes — all spend from the same `reading.model_spend` row, whichever claims it first.
+  `PHRASE_NOTES_DAILY_CALL_CAP` 200 is a second, lower ceiling the notes route alone stops at.
+  Per device and per day, `WORD_UNLISTED_DAILY_CLIENT_CAP` is 100 and `PHRASE_NOTES_DAILY_CLIENT_CAP`
+  is 50, **both read against one shared `reading.client_spend` row**: a reader who spends 50 calls on
+  unlisted words gets no phrase notes that day, having asked for none. That is the accepted price of
+  one counter per caller.
 
 #### The sentence
 

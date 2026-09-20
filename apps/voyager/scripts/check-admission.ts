@@ -3,19 +3,20 @@
  * `reading.client_spend` table `claimClientCall` writes to.
  *
  * `client-budget.ts` starts with `import "server-only"`, which throws under
- * plain Node (no such package outside a Next build), so this script
- * reimplements its two functions' bodies directly rather than re-importing
- * them — the same reason `check-decoration.ts` and `check-sync.ts` open
- * their own `postgres` client instead of importing `db/client.ts`.
- * `admit.ts` carries no such import and is imported for real below.
+ * plain Node (no such package outside a Next build), so `claimClientCall`
+ * below is reimplemented directly — the same reason `check-decoration.ts`
+ * and `check-sync.ts` open their own `postgres` client instead of importing
+ * `db/client.ts`. `clientKey` carries no such import (it lives in
+ * `lib/word/client-key.ts`, the pure half `client-budget.ts` wraps) and is
+ * imported for real below, same as `admit.ts`.
  */
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import postgres from "postgres";
 
 import { admitWord } from "../lib/word/admit";
+import { clientKey } from "../lib/word/client-key";
 import { manifestSchema, type DictionaryPayload } from "../lib/dictionary/format";
 import { buildIndex } from "../lib/dictionary/index-build";
 
@@ -75,17 +76,9 @@ for (const word of REJECTED) {
   );
 }
 
-// clientKey's body, reimplemented (see the file header): a caller with
+// The real `clientKey` (see the file header): a caller with
 // `x-forwarded-for` set but no salt configured must still get no key — a
 // budget that cannot be charged is a budget that does not exist.
-function clientKey(request: Request, salt: string | undefined): string | null {
-  if (!salt) return null;
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const address = forwardedFor?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim();
-  if (!address) return null;
-  return createHash("sha256").update(`${salt}:${address}`).digest("hex");
-}
-
 {
   const request = new Request("http://localhost/api/word/unlisted", {
     headers: { "x-forwarded-for": "203.0.113.9" },

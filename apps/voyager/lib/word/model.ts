@@ -1,14 +1,18 @@
 import "server-only";
 
+import type { Sense } from "@/lib/dictionary/index-build";
 import { env } from "@/lib/env";
 import { textResponseSchema, type WordText } from "@/lib/word/protocol";
 
-// RL-41/RL-42's one model, decided by the user 2026-09-10 over `minimal`
-// (4.4x cheaper, but invented `abies` as a form of a young tree instead of
-// the fir genus) and over `gpt-4.1-nano` (returned the bare headword where a
-// translation was asked for, in 12 of 12). Never a flagship: one `gpt-5.5`
-// call bought nothing a measurement had not already said.
-export const MODEL_NAME = "gpt-5-nano";
+// Raised from `gpt-5-nano`: nano answered snuff's missing senses 0 of 4
+// real calls (`null`, `null`, `null`, `[]`) and repeated a sense already
+// listed on frisk; mini answered 4 of 4, new and real. Mini is 5x the
+// token price but reasons less to get there — 505 output tokens average
+// against nano's 779 — so the real multiple is 3.3x: $1.05 against $0.32 a
+// month at this reader's own rate. The definition and the example are not
+// the reason: measured separately, both models write them well, and
+// nano's is the cleaner of the two. The gain is in `translations` alone.
+export const MODEL_NAME = "gpt-5-mini";
 
 const CHAT_COMPLETIONS_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 
@@ -28,42 +32,56 @@ type ChatCompletionsPayload = {
   choices?: Array<{ message?: { content?: string } }>;
 };
 
-// RL-45's ask, folded into the one prompt: `existingTranslations` null means
-// the entry was never thin and none is wanted; an array (even empty) is
-// what the dictionary already lists, asked to be completed rather than
-// repeated.
-function buildTranslationsInstruction(headword: string, existingTranslations: readonly string[] | null): string {
-  if (existingTranslations === null) {
+// RL-45's ask, folded into the one prompt: `existingSenses` null means the
+// entry was never thin and none is wanted; an array (even empty) is every
+// sense the dictionary already carries, asked for every sense none of the
+// Spanish words already listed express — never a bare string the model can
+// satisfy with a synonym of one already listed, and never asked as a
+// single sense: picking one left the sense a reader actually wanted to the
+// model's choice, surfacing it in 1 of 17 real calls, where asking for all
+// of them returned it on the first try, at no extra call. `snuff`'s own
+// noun sense glosses "sniff" in its English definition while translating
+// only "rapé": the model read that gloss as covering the verb's own smell
+// sense too, and missed it 5 of 6 real calls, until told plainly that a
+// gloss is not a Spanish word and does not count as coverage.
+function buildTranslationsInstruction(headword: string, existingSenses: readonly Sense[] | null): string {
+  if (existingSenses === null) {
     return `Set "translations" to null: this headword's dictionary entry is not thin.`;
   }
-  if (existingTranslations.length === 0) {
+  if (existingSenses.length === 0) {
     return (
       `Set "translations" to an array of Spanish translations for "${headword}", most common ` +
       `use first. An empty array if you find none.`
     );
   }
+  const senses = existingSenses
+    .map((sense) => {
+      const gloss = sense.definition ? ` — "${sense.definition}"` : "";
+      return `${sense.pos}: ${sense.translations.join(", ")}${gloss}`;
+    })
+    .join("; ");
   return (
-    `The dictionary already lists these Spanish translations for "${headword}": ` +
-    `${existingTranslations.join(", ")}. Set "translations" to an array of the ones it is ` +
-    `missing, most common use first, never repeating one already listed. An empty array if you ` +
-    `find none.`
+    `The dictionary already lists these senses of "${headword}": ${senses}. Set "translations" to ` +
+    `Spanish words for every sense none of the Spanish words above express, most common sense first, ` +
+    `at most two words per sense. A sense counts as covered only when one of the Spanish words ` +
+    `above truly means it: a word appearing inside an English gloss does not cover it, and a ` +
+    `different part of speech is always a different sense. A synonym of a sense already listed ` +
+    `still counts as that same sense, even spelled with a different Spanish word — never offer ` +
+    `one. An empty array if you know no other sense.`
   );
 }
 
-function buildSystemPrompt(
-  headword: string,
-  wantDefinition: boolean,
-  existingTranslations: readonly string[] | null,
-): string {
+function buildSystemPrompt(headword: string, wantDefinition: boolean, existingSenses: readonly Sense[] | null): string {
   const definitionInstruction = wantDefinition
-    ? `Write "definition" as one concise English sentence defining "${headword}", in a dictionary's own register.`
+    ? `Write "definition" as one concise English sentence defining "${headword}", in a dictionary's ` +
+      `own register, starting with the definition itself — never with "${headword}" or its part of speech.`
     : `Set "definition" to null: this headword already has one.`;
   return (
     `You extend an English-Spanish learner's dictionary. Reply with strict JSON only, shaped ` +
     `exactly as {"definition": string|null, "example": {"en": string, "es": string}, ` +
     `"translations": string[]|null}. "example.en" is one natural English sentence that uses ` +
     `"${headword}". "example.es" is its Spanish translation. ${definitionInstruction} ` +
-    `${buildTranslationsInstruction(headword, existingTranslations)}`
+    `${buildTranslationsInstruction(headword, existingSenses)}`
   );
 }
 
@@ -82,7 +100,7 @@ function buildSystemPrompt(
 export async function generateWordText(
   headword: string,
   wantDefinition: boolean,
-  existingTranslations: readonly string[] | null,
+  existingSenses: readonly Sense[] | null,
 ): Promise<WordText | null> {
   const apiKey = env.OPENAI_API_KEY;
   if (!apiKey) return null;
@@ -93,7 +111,7 @@ export async function generateWordText(
     max_completion_tokens: MAX_OUTPUT_TOKENS,
     response_format: { type: "json_object" },
     messages: [
-      { role: "system", content: buildSystemPrompt(headword, wantDefinition, existingTranslations) },
+      { role: "system", content: buildSystemPrompt(headword, wantDefinition, existingSenses) },
       { role: "user", content: `Headword: ${headword}` },
     ],
   };

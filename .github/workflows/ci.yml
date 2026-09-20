@@ -53,6 +53,22 @@ jobs:
       - run: npm ci
       - run: npm run check:dict -w apps/voyager
 
+  # The pure modules, in milliseconds. `node:test` ships with Node 22, so this
+  # job installs nothing the others do not. It exists so a mutation costs
+  # seconds instead of the six minutes `voyager-e2e` charges: 33 tests, 255ms
+  # measured 2026-09-19 against a suite that could not afford to break its own
+  # code on purpose.
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:unit -w apps/voyager
+
   # Drives the policies on `reading` against the real database, DELETE included
   # — the only proof RNL-10 has. One transaction that always rolls back, so it
   # leaves no row and `harness:census` does not move. Also absent until

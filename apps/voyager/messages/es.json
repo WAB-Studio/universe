@@ -38,7 +38,6 @@
     "preparingReadOnly": "Instalando el diccionario en el dispositivo"
   },
   "word": {
-    "viaInflection": "\"{surface}\" es una forma de \"{lemma}\"",
     "viaInflectionWithEntry": "\"{surface}\" también es una forma de \"{lemma}\"",
     "formOf": "\"{surface}\" es una forma de \"{lemma}\"",
     "translations": "Traducciones",
@@ -53,13 +52,15 @@
     "networkFailed": "No se pudo responder por internet",
     "example": "Ejemplo",
     "exampleTranslation": "Traducción",
+    "examplePronunciation": "El ejemplo corresponde a {ipa}",
     "suggestions": "Sugerencias",
     "listen": "Escuchar «{headword}»",
+    "listenPronunciation": "Escuchar «{headword}» {ipa}",
     "pos": {
       "n": "sustantivo",
       "adj": "adjetivo",
       "v": "verbo",
-      "pn": "pronombre",
+      "pn": "nombre propio",
       "adv": "adverbio",
       "phraseologicalUnit": "locución"
     }
@@ -142,7 +143,10 @@
       "sendFailed": "No se pudo enviar el enlace",
       "rateLimited": "Demasiados intentos. Prueba de nuevo en unos minutos.",
       "offline": "Sin conexión. No se pudo enviar el enlace.",
-      "linkInvalid": "El enlace no es válido o venció"
+      "linkTimeoutTitle": "No pudimos comprobar el enlace",
+      "linkTimeoutBody": "Falló de nuestro lado, no del enlace. Ábrelo otra vez desde el correo; si tampoco entra, pide uno nuevo aquí.",
+      "linkInvalidTitle": "El enlace no vale o ya venció",
+      "linkInvalidBody": "Pide uno nuevo aquí abajo. Cada enlace sirve una sola vez y dura una hora."
     },
     "copy": {
       "label": "Copia",

@@ -29,15 +29,18 @@
  *      exists to prove, on phrases the model-call assertions still need to
  *      succeed.
  *
- * `notes-cache.ts` and `client-budget.ts` both start with `import
- * "server-only"`, which throws under plain Node, so their hash and key
- * derivations are reimplemented here directly — the same reason
- * `check-admission.ts` reimplements `clientKey` and `claimClientCall`
- * rather than importing them.
+ * `notes-cache.ts` starts with `import "server-only"`, which throws under
+ * plain Node, so its hash derivation is reimplemented here directly — the
+ * same reason `check-admission.ts` reimplements `claimClientCall` rather
+ * than importing it. `clientKey`'s own formula carries no such import (it
+ * lives in `lib/word/client-key.ts`, the pure half `client-budget.ts`
+ * wraps) and is imported for real below, same as `check-admission.ts` does.
  */
 import { createHash } from "node:crypto";
 
 import postgres from "postgres";
+
+import { clientKeyFromAddress } from "../lib/word/client-key";
 
 const BASE_URL = process.env.VOYAGER_BASE_URL ?? "http://localhost:3105";
 const NOTES_PATH = "/api/phrase/notes";
@@ -132,11 +135,6 @@ function foldPhrase(s: string): string {
 function computeHash(source: string, translation: string): string {
   const joined = `${foldPhrase(source)}␟${foldPhrase(translation)}`;
   return createHash("sha256").update(joined).digest("hex");
-}
-
-// `client-budget.ts`'s `clientKey`, reimplemented the same way.
-function computeClientKey(salt: string, address: string): string {
-  return createHash("sha256").update(`${salt}:${address}`).digest("hex");
 }
 
 type NotesBody = { notes?: Array<{ term: string; note: string }> };
@@ -255,8 +253,8 @@ async function checkTranslationShape(): Promise<void> {
 async function checkPaid(): Promise<void> {
   const hashMinorca = computeHash(BLACK_MINORCA.source, BLACK_MINORCA.translation);
   const hashFrisking = computeHash(FRISKING.source, FRISKING.translation);
-  const clientKeyMinorca = computeClientKey(TEST_SALT, TEST_CLIENT_ADDRESS_MINORCA);
-  const clientKeyFrisking = computeClientKey(TEST_SALT, TEST_CLIENT_ADDRESS_FRISKING);
+  const clientKeyMinorca = clientKeyFromAddress(TEST_CLIENT_ADDRESS_MINORCA, TEST_SALT);
+  const clientKeyFrisking = clientKeyFromAddress(TEST_CLIENT_ADDRESS_FRISKING, TEST_SALT);
   const headersMinorca = { "x-forwarded-for": TEST_CLIENT_ADDRESS_MINORCA };
   const headersFrisking = { "x-forwarded-for": TEST_CLIENT_ADDRESS_FRISKING };
 
@@ -353,7 +351,7 @@ async function checkPaid(): Promise<void> {
 async function checkClientCap(): Promise<void> {
   const hashFirst = computeHash(CAP_FIRST.source, CAP_FIRST.translation);
   const hashSecond = computeHash(CAP_SECOND.source, CAP_SECOND.translation);
-  const clientKeyCap = computeClientKey(TEST_SALT, TEST_CLIENT_ADDRESS_CAP);
+  const clientKeyCap = clientKeyFromAddress(TEST_CLIENT_ADDRESS_CAP, TEST_SALT);
   const headers = { "x-forwarded-for": TEST_CLIENT_ADDRESS_CAP };
 
   const priorSpendRow = (await sql<ModelSpendRow[]>`
