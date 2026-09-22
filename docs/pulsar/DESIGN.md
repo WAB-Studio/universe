@@ -104,6 +104,8 @@ On the canvas, in three pages. A module that draws a screen cites its board by n
 | `RevisionEscritorio.dc.html` | the same table wide |
 | `Meta.dc.html` | a goal's commitments, cadences and phases |
 | `MetaNueva.dc.html` | the least it takes to open a goal |
+| `CompromisoNuevo.dc.html` | adding a commitment: what it is, how often, what satisfies it (RP-12) |
+| `CompromisoRetirar.dc.html` | the sheet that retires one, saying what it leaves intact (RP-13) |
 | `Entrar.dc.html` | the link sent to an address (RP-18) |
 
 ## The boards that do not exist
@@ -115,14 +117,33 @@ Say what is missing, so a gap nobody drew reads as a gap nobody needed.
   2026-09-10, for every app.
 - **A wide face beyond `RevisionEscritorio.dc.html`.** Only the review's table changes shape rather
   than width. The rest is used with one thumb.
-- **Adding or retiring a commitment (RP-12, RP-13).** `Meta.dc.html` lists them; nothing draws the
-  act. Draw it before its module.
 - **The one-offs with no day (RP-21).** Their list is named in the contract and drawn nowhere.
 - **Writing a fact for a day already past (RP-06).** Not drawn.
 - **The moment a phase ends (RP-15)** and the review's own act — recording the answer again. Not drawn.
 
 ## Decisions taken here
 
+- **The light/dark control sits in the day's header** (RNP-08), a 44 px icon button at the top
+  right. No `/cuenta` screen exists in this app. Taken by the user 2026-09-22; drawn on
+  `Hoy.dc.html`, `HoyOscuro.dc.html` and every other day board the same day.
+- **A one-off is written in a field at the foot of the day** (RP-19), permanently visible under the
+  day's one-offs: type and it lands. No sheet and no screen of its own. Taken by the user
+  2026-09-22; drawn on `Hoy.dc.html` and `HoyVarias.dc.html`. The empty mark beside it is dashed,
+  the only dashed stroke in the design, because it is the one row nothing has written yet.
+- **A goal is opened with a name and a horizon, nothing more** (RP-11). The measure and its unit are set later,
+  with the first commitment that measures something. Taken by the user 2026-09-22, and
+  `MetaNueva.dc.html` redrawn the same day: it had a third field for the measure and now has two.
+- **The day is `America/Bogota`** (RNP-06), one constant in one file, not a column and not the
+  browser's zone. Taken by the user 2026-09-22.
+- **The day holds every open goal at once, grouped, with no selector**, and the one-offs sit below
+  the last goal. With four goals the person scrolls. Taken by the user 2026-09-22;
+  `HoyVarias.dc.html` is the board that shows it.
+- **A cadence is chosen with chips, not a menu** (RP-12). «días sueltos» opens a row of seven day
+  toggles; the other three cadences replace that row with one number. Drawn 2026-09-22 on
+  `CompromisoNuevo.dc.html`, which unblocks the commitment act.
+- **Retiring says what it does not do** (RP-13). The sheet's sentence is about what survives — the
+  weeks already governed, the days already done — because that is the only thing anyone hesitates
+  over. Drawn 2026-09-22 on `CompromisoRetirar.dc.html`.
 - **How much evidence satisfies a day (RP-08): one search.** Taken by the user 2026-09-22.
   `Meta.dc.html` draws «1 búsqueda · diccionario»; the day boards draw 55, which is the real figure
   measured in `reading.lookups` that day. The threshold is per commitment and the person can raise it.
