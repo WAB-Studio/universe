@@ -10,6 +10,11 @@
   --accent-a11: var(--pulsar-accent);
   --accent-contrast: var(--pulsar-on-accent);
   border-radius: 10px;
+  /* Radix sets a control's label from its own scale — 14px at size 2, a size
+     docs/pulsar/DESIGN.md has no role for. A label on a control reads at the
+     same step a commitment name does. */
+  font-size: var(--pulsar-text-name-size);
+  font-weight: var(--pulsar-text-name-weight);
 }
 
 /* `--base-button-height` is what a size step sets; the floor is pinned on top

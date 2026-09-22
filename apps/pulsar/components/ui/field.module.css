@@ -30,6 +30,12 @@
   border-radius: 10px;
 }
 
+/* Radix draws a placeholder in its own grey scale. Muted is the smallest text
+   colour the token table has, and a placeholder is still read. */
+.control.control input::placeholder {
+  color: var(--pulsar-muted);
+}
+
 .hint {
   font-size: var(--pulsar-text-meta-size);
   line-height: 1.4;
