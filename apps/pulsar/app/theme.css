@@ -63,3 +63,14 @@ body {
   color: var(--pulsar-ink);
   font-family: var(--font-sans);
 }
+
+/* Radix Themes pins `--default-font-family` to its own system stack on the
+   theme root, and every control it draws reads that variable rather than the
+   family the body sets: without this line Archivo draws nowhere. It lives here
+   and not in a component because a surface Radix sends through a portal — a
+   sheet, a popover, a tooltip — inherits nothing from the page that opened it.
+   Loaded after `@radix-ui/themes/styles.css`, so at equal weight this wins;
+   `--heading-font-family` follows, since Radix defines it from this one. */
+.radix-themes {
+  --default-font-family: var(--font-sans);
+}

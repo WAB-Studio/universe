@@ -18,11 +18,6 @@
   background-color: var(--pulsar-raised);
   color: var(--pulsar-ink);
   --dialog-content-padding: 20px;
-  /* A sheet is portalled out of the page, so it inherits nothing the page
-     sets: the family it draws sentences in is repeated here. */
-  --default-font-family: var(--font-sans);
-  --heading-font-family: var(--font-sans);
-  font-family: var(--font-sans);
   padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0px));
 }
 

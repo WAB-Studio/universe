@@ -1,14 +1,6 @@
 /* docs/pulsar/DESIGN.md "Tokens": the ground. The column is a flex stack so a
-   screen spaces its groups with `gap` instead of a margin of its own.
-
-   Radix Themes pins `--default-font-family` to its own system stack on the
-   theme root, and every control it draws reads that variable rather than the
-   body's family: without these three lines a sentence renders in the system
-   font and Archivo never draws (docs/pulsar/DESIGN.md "Type"). */
+   screen spaces its groups with `gap` instead of a margin of its own. */
 .page {
-  --default-font-family: var(--font-sans);
-  --heading-font-family: var(--font-sans);
-  font-family: var(--font-sans);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
