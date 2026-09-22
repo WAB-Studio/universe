@@ -1,0 +1,65 @@
+/* Radix Themes scopes its reset to `.radix-themes`; the document itself still
+   needs to fill the viewport and lose the user-agent's default body margin. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+/* docs/pulsar/DESIGN.md "Tokens" — light is the primary face, dark is the
+   same design inverted. The class comes from the pre-paint script, never
+   from a media query, so a chosen face survives the device's own setting. */
+.light {
+  --pulsar-ground: #edeff2;
+  --pulsar-raised: #ffffff;
+  --pulsar-line: #dce1e7;
+  --pulsar-border: #c7ced7;
+  --pulsar-ink: #12171c;
+  --pulsar-ink-secondary: #333c45;
+  --pulsar-muted: #5e6874;
+  --pulsar-quiet: #8a939e;
+  --pulsar-accent: #1c6e5a;
+  --pulsar-accent-soft: #dceae5;
+  --pulsar-on-accent: #ffffff;
+}
+
+.dark {
+  --pulsar-ground: #0f1317;
+  --pulsar-raised: #161b20;
+  --pulsar-line: #222930;
+  --pulsar-border: #2b333b;
+  --pulsar-ink: #e7ecf1;
+  --pulsar-ink-secondary: #c3cbd3;
+  --pulsar-muted: #949ea9;
+  --pulsar-quiet: #5c666f;
+  --pulsar-accent: #4fbea0;
+  --pulsar-accent-soft: #17332c;
+  --pulsar-on-accent: #0f1317;
+}
+
+/* docs/pulsar/DESIGN.md "Type" — a figure is set in mono, a sentence in
+   Archivo; the section label, screen title, commitment name and measure
+   each carry their own size so no screen invents one. */
+:root {
+  --pulsar-text-label-size: 11px;
+  --pulsar-text-label-tracking: 0.14em;
+  --pulsar-text-title-size: 27px;
+  --pulsar-text-title-weight: 600;
+  --pulsar-text-title-tracking: -0.02em;
+  --pulsar-text-title-size-wide: 41px;
+  --pulsar-text-title-weight-wide: 650;
+  --pulsar-text-title-tracking-wide: -0.03em;
+  --pulsar-text-name-size: 16px;
+  --pulsar-text-name-weight: 500;
+  --pulsar-text-meta-size: 12px;
+  --pulsar-text-measure-size: 26px;
+  --pulsar-text-measure-weight: 500;
+  --pulsar-text-unit-size: 11px;
+  --pulsar-text-measure-tracking: 0.02em;
+}
+
+body {
+  background: var(--pulsar-ground);
+  color: var(--pulsar-ink);
+  font-family: var(--font-sans);
+}
