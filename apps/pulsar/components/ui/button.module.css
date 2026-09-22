@@ -62,11 +62,12 @@
   background-color: transparent;
 }
 
-/* The bare glyph the light/dark control is drawn as: no fill, no ring, ink. */
+/* docs/pulsar/DESIGN.md "The controls": the day's theme control — a glyph with
+   no fill, no ring and muted ink. */
 .ghost.ghost {
   background-color: transparent;
   box-shadow: none;
-  color: var(--pulsar-ink);
+  color: var(--pulsar-muted);
 }
 
 /* docs/pulsar/DESIGN.md "The controls": solid is the accent filled, with no
@@ -77,18 +78,16 @@
   box-shadow: none;
 }
 
-/* docs/pulsar/DESIGN.md "The controls": disabled is muted ink over the same
-   fill, with a `line` ring. It never changes hue and never takes a grey from
-   somewhere else — Radix washes a disabled control with `--gray-a3` and rings
-   it in `--gray-a7`, both from a scale this design does not use. */
+/* docs/pulsar/DESIGN.md "The controls": disabled drops the fill in every
+   variant — muted ink on the surface behind it, with a `line` ring. Keeping
+   the variant's own fill measured 1.08:1 on the light face and 1.19:1 on the
+   dark one, which is unreadable; this reads 4.92 and 6.86. It never changes
+   hue and never takes a grey from somewhere else — Radix washes a disabled
+   control with `--gray-a3` and rings it in `--gray-a7`, both from a scale this
+   design does not use. */
 .control.control:disabled,
 .control.control[data-disabled] {
+  background-color: transparent;
   color: var(--pulsar-muted);
   box-shadow: inset 0 0 0 1.5px var(--pulsar-line);
-}
-
-/* «The same fill» taken at its word: a disabled solid keeps the accent. */
-.solid.solid:disabled,
-.solid.solid[data-disabled] {
-  background-color: var(--pulsar-accent);
 }

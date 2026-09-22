@@ -50,10 +50,11 @@
   letter-spacing: var(--pulsar-text-measure-tracking);
 }
 
-/* docs/pulsar/DESIGN.md "The controls": muted ink, the same fill, a `line`
-   ring. */
+/* docs/pulsar/DESIGN.md "The controls": disabled drops the fill, in every
+   variant — a selected chip included — and keeps muted ink and a `line` ring. */
 .chip:disabled {
   cursor: default;
+  background: transparent;
   color: var(--pulsar-muted);
   border-color: var(--pulsar-line);
 }

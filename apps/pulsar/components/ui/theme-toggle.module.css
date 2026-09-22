@@ -1,10 +1,5 @@
-/* A ghost control carries no fill, so its glyph is the ink of the page rather
-   than the accent Radix gives every ghost button. Doubled to outrank
-   `.rt-BaseButton:where(.rt-variant-ghost)`. */
-.toggle.toggle {
-  color: var(--pulsar-ink);
-}
-
+/* No colour here: docs/pulsar/DESIGN.md "The controls" gives the ghost variant
+   its own muted ink, and button.module.css is where that lives. */
 .icon {
   inline-size: 20px;
   block-size: 20px;

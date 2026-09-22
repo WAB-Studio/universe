@@ -30,7 +30,6 @@ export function ThemeToggle({
     <IconButton
       tap={44}
       variant="ghost"
-      className={styles.toggle}
       aria-label={next === "light" ? toLightLabel : toDarkLabel}
       onClick={() => applyTheme(next)}
     >
