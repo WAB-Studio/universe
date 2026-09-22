@@ -14,13 +14,20 @@
  * it. `anon` is driven too and refused everything.
  *
  * Part 2 calls `withSettledTransaction` (`@/lib/settled-transaction`) —
- * the exact function `withGoalsDb` calls, not a copy of it — so a regression
- * to either turns this script red. `withGoalsDb` itself still cannot run from
- * a plain script (`verifiedClaims` needs `next/headers`'s `cookies()`, which
- * throws outside a request — the same wall module 3's own validator hit for
- * orbit), so this part builds its own session object directly instead of
- * asking Supabase for one; only that lookup is out of reach here, not the
- * boundary it guards.
+ * the exact function `withGoalsDb` calls, not a copy of it — so a mutation to
+ * that function is what turns this script red, from either call site.
+ * `withGoalsDb` itself still cannot run from a plain script (`verifiedClaims`
+ * needs `next/headers`'s `cookies()`, which throws outside a request — the
+ * same wall module 3's own validator hit for orbit), so this part builds its
+ * own session object directly instead of asking Supabase for one; only that
+ * lookup is out of reach here, not the boundary it guards. One exception:
+ * `P27` reads a *second*, later connection on the same pool to check nothing
+ * leaked past the first one's commit, and that comparison is exactly the one
+ * thing here that depends on a shared, contended resource — see
+ * `docs/TRAPS.md`, "claims (and role) can survive a connection through the
+ * pooler": under concurrent load on the same `DATABASE_URL` it can both flag
+ * correct code and miss a real regression. `P26`, which checks the settle
+ * from inside its own single transaction, does not share that weakness.
  */
 import { randomUUID } from "node:crypto";
 
@@ -365,10 +372,15 @@ async function checkSettleMechanism(): Promise<void> {
 
   // `is_local = true` (the third argument to every `set_config` in
   // `settleSessionSql`) is what keeps the settle from surviving its own
-  // transaction. `max: 1` reuses one physical connection for this whole
-  // client, so a bare, unsettled statement right after `seated` above proves
-  // nothing leaked onto it — flipping that argument to `false` is exactly
-  // what turns this assertion red.
+  // transaction. `max: 1` keeps one persistent client socket open for
+  // `sql`'s whole life, but under Supavisor's transaction pooling that socket
+  // can still be handed a *different* upstream backend for this bare query
+  // than the one `seated` above ran on — so this assertion is a real check
+  // with a real, measured false-positive and false-negative rate under
+  // contention on the shared `DATABASE_URL`, not a certainty. See
+  // `docs/TRAPS.md`, "claims (and role) can survive a connection through the
+  // pooler": ten runs correct/idle all passed, five of ten correct/under load
+  // failed, and two of ten under a real `is_local` regression passed anyway.
   const [bare] = await sql<{ role: string }[]>`select current_user as role`;
   assert("P27", bare.role !== "authenticated", `role on the same connection after commit = ${bare.role}`);
 
