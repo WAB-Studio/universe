@@ -1,1 +1,17 @@
-{}
+{
+  "title": "Entrar",
+  "emailLabel": "Correo electrónico",
+  "action": "Enviar enlace",
+  "sending": "Enviando…",
+  "sent": "Revisa tu correo y abre el enlace que te mandamos.",
+  "errors": {
+    "emailInvalid": "Escribe un correo válido.",
+    "domainUndeliverable": "Ese dominio no recibe correo.",
+    "sendFailed": "No se pudo enviar el enlace.",
+    "rateLimited": "Demasiados intentos. Prueba de nuevo en unos minutos.",
+    "linkTimeoutTitle": "No pudimos comprobar el enlace",
+    "linkTimeoutBody": "Falló de nuestro lado, no del enlace. Ábrelo otra vez desde el correo; si tampoco entra, pide uno nuevo aquí abajo.",
+    "linkInvalidTitle": "El enlace no vale o ya venció",
+    "linkInvalidBody": "Pide uno nuevo aquí abajo. Cada enlace sirve una sola vez."
+  }
+}
