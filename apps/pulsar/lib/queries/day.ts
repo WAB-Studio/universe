@@ -174,9 +174,9 @@ function toCadence(row: CommitmentRow): Cadence {
     case "times_per_week":
       return { kind: "times_per_week", count: row.cadence_n ?? 0 };
     case "every_n_days":
-      // `goals.commitments` has no anchor column: `docs/pulsar/SPEC.md`
-      // settles "every N days" to count from `created_at`, read as the
-      // person's own civil day, never Postgres's UTC render of the
+      // `goals.commitments` has no anchor column: RP-12 (`docs/pulsar/
+      // SPEC.md`) settles "every N days" to count from `created_at`, read
+      // as the person's own civil day, never Postgres's UTC render of the
       // timestamp — `created_at` between 19:00 and 23:59:59 Bogotá already
       // reads as the next UTC day, so slicing that string would anchor a
       // fifth of all commitments one day late and silently shift the whole

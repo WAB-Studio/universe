@@ -2216,30 +2216,44 @@ Two rules follow, and the second is the one that bites:
 
 It is the same shape as «One database behind every harness lane» above, one schema over.
 
-## A cold pool makes a real `Promise.all` fan-out measure as a chain
+## A cold pool sometimes makes a real `Promise.all` fan-out measure as a chain
 
 Measured 2026-09-22, module 8's `apps/pulsar/lib/queries/day.ts`. `loadDay` opens
 `withGoalsDb` and `withReadingDb` in the same `Promise.all([...])`, with no await between
 them and no data dependency from one to the other — the fan-out is real in the code. A
-process that measures it right after start can still see two spans that never touch.
+fresh process can still, sometimes, measure two spans that barely touch or do not touch
+at all — and other fresh processes, on the same commit, overlap cleanly.
 
 With `apps/pulsar/db/client.ts`'s pool already warm — a query or two already run on it —
 both transactions begin **0.2 ms** apart and their two data queries fire within about a
-millisecond of each other. With the same pool cold, in a fresh process: the `goals`
-transaction ran `begin 2871.89 → end 3339.22`, and the `reading` transaction's own
-`begin` did not land until `3361.70` — zero overlap, a **~470 ms** gap with nothing else
-happening in it.
+millisecond of each other. Three separate cold processes gave three different pictures:
 
-The cause is `idle_timeout: 20` on that pool: after 20 s with no traffic, the next
-statement redials a fresh TCP connection and repeats the TLS handshake before it can send
-`begin`. **No line in `day.ts` can shorten a handshake neither transaction has run yet.**
-`max: 8` rules out the other plausible cause — the two transactions queuing behind one
-shared connection — which was checked and is not what happens here; that queuing is the
-actual bug this measurement would otherwise be mistaken for.
+- One: the `goals` transaction ran `begin 2871.89 → end 3339.22` — **467.3 ms** of its own
+  work — and the `reading` transaction's `begin` did not land until `3361.70`. Start to
+  start that is **489.8 ms** late, but the actual dead gap, `end` to `begin`, is only
+  **22.5 ms**: almost all of the lateness is the first transaction genuinely running, not
+  idle time between the two.
+- Two others overlapped normally, same as the warm pool: `3563.24` / `3569.06` (5.8 ms
+  apart) and `3341.15` / `3342.40` (1.25 ms apart).
+
+The serialization is **real but intermittent**, not a property of every fresh process. The
+likely reason: a "cold" `postgres()` pool object can still ride a warm OS-level DNS/TCP
+route to the same host from an earlier connection this session made, so most fresh
+processes behave like the warm pool and only some pay a real handshake.
+
+When it does show up, the cause is `idle_timeout: 20` on the pool: after 20 s with no
+traffic, the next statement redials a fresh TCP connection and repeats the TLS handshake
+before it can send `begin`. **No line in `day.ts` can shorten a handshake neither
+transaction has run yet.** `max: 8` rules out the other plausible cause — the two
+transactions queuing behind one shared connection — which was checked and is not what
+happens here; that queuing is the actual bug this measurement would otherwise be mistaken
+for.
 
 **Decided by the user 2026-09-22: pay it, don't hide it.** Nobody raises `idle_timeout` in
-`db/client.ts` and nobody pre-warms the pool on boot. The day screen's first paint after a
-cold start pays one handshake; every one after it does not. A future session that measures
-two transactions running in series on a fresh process has not found a regression in
-`day.ts` — module 8's own done criterion ("the two transactions overlap in time") is true
-of the warm pool, which is what every request after the first one gets.
+`db/client.ts` and nobody pre-warms the pool on boot. The day screen's first paint
+sometimes pays one handshake; most requests, cold process or not, do not. A future session
+that measures two transactions running in series on a fresh process has not necessarily
+found a regression in `day.ts` — module 8's own done criterion ("the two transactions
+overlap in time") is true most of the time, and failing to reproduce a serialized run on
+the first try does not disprove this entry: the effect comes and goes with the host's own
+connection caches, not with the code.
