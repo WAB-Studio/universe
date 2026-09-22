@@ -2194,3 +2194,24 @@ is the grant and not a misrouted session.
 
 **It bites any table in this repo with a column-scoped `GRANT INSERT`.** Write the statement, name
 the granted columns, and leave the rest out of the SQL entirely.
+
+## A pulsar lane mints no identity, so every lane writes the same `goals` rows
+
+`scripts/worktree.sh`'s table gives `pulsar` an `.env.local` and **no harness identities**, so a lane
+opened with `--app pulsar` has no `harness-<n>@example.invalid` of its own. Every pulsar track that
+needs a person to write as reaches for the same registered pair, `harness-5@example.invalid` and
+`harness-member-5@example.invalid` — and `HARNESS_LANE` does not scope `goals.goals`,
+`goals.commitments`, `goals.phases`, `goals.facts` or `goals.one_offs`. Two tracks seeding fixtures
+at once are writing the same person's rows.
+
+Measured 2026-09-22: module 8's verification saw rows appear and vanish under it while module 10's
+lane was seeding the same identity. Both reports were honest; the database was one.
+
+Two rules follow, and the second is the one that bites:
+
+- **Delete a fixture by its exact id. Never by `user_id`.** A cleanup scoped to the person takes the
+  other lane's rows with it, and that lane then reports a failure it did not cause.
+- **Count rows before and after your own run, and treat a moving count as a neighbour, not a bug** —
+  until you have checked which lanes are live.
+
+It is the same shape as «One database behind every harness lane» above, one schema over.
