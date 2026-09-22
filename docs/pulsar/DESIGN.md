@@ -20,6 +20,9 @@ A ship's log: what happened, when, and who wrote it down.
 - **Writing a fact costs one tap.** No form stands on the day's path. What needs a number offers it
   already filled.
 - Rule between rows with a hairline. Never a card, never a border box.
+- **No shadow anywhere.** Not on a sheet, not on a button, not on a field. Separation is a hairline,
+  a change of fill, or the scrim — never a blur. Checked 2026-09-22 against all seventeen boards:
+  they draw **zero**. A library that paints one is painting a decision this design did not take.
 
 ## Tokens
 
@@ -37,6 +40,7 @@ Light, the primary:
 | quiet (strokes and decoration only) | `#8A939E` |
 | accent | `#1C6E5A` |
 | accent, soft (the evidence mark's fill) | `#DCEAE5` |
+| scrim (behind a sheet) | `rgba(18, 23, 28, 0.34)` |
 
 Dark, the same design inverted:
 
@@ -52,7 +56,14 @@ Dark, the same design inverted:
 | quiet | `#5C666F` |
 | accent | `#4FBEA0` |
 | accent, soft | `#17332C` |
+| scrim | `rgba(5, 7, 9, 0.62)` |
 
+- The scrim is darker than the dark ground on purpose: a sheet is `raised`, and it has to lift off
+  what is behind it on both faces. Taken 2026-09-22, when the only scrim in the app was a library's
+  black alpha that no table held.
+- **The theme root speaks these tokens.** Radix paints its own ground and ink on `.radix-themes`;
+  both are overridden there. A surface that is not a `Page` would otherwise show a colour this table
+  never chose — the same way it showed the system font before the family moved here.
 - The accent is a different hex per face, not one colour at two opacities. `#1C6E5A` has too little
   contrast on the dark ground; `#4FBEA0` has too little on the light one.
 - **muted is the smallest text colour there is.** `quiet` never carries a word a person must read:
@@ -68,6 +79,15 @@ Dark, the same design inverted:
 - Set a screen title at 27 px / 600 / `-0.02em` on the phone, 38–44 px / 600–700 / `-0.03em` wide.
 - Set a commitment name at 16 px / 500. Its metadata line is mono 12 in muted.
 - Set the measure at 26 px mono / 500, with its unit beside it at mono 11 in quiet.
+- Set a sheet's title at 21 px / 600 / `-0.02em`, and the line under it at 15 px / 1.6 in ink
+  secondary. Both are what `HoyCantidad.dc.html` and `CompromisoRetirar.dc.html` already draw;
+  written down 2026-09-22, when a primitive reached for 19 px and 14 px because no role here
+  claimed them.
+- Every size in this table is a `--pulsar-text-*` token in `app/theme.css`, the sheet's pair
+  included. A size that lives as a literal inside one component is a size the next component will
+  guess differently.
+- **There is no role at 24 px and none at 14 px.** A component that needs one is a component
+  reaching past this table; give it the nearest role or bring the decision here first.
 
 ## The marks
 
@@ -83,6 +103,33 @@ Three states, one shape — a 24 px circle at the head of the row:
   did (RP-09). The difference is fill, never hue: a second hue would be a second accent.
 - A row is a real `<button>`, never a div. Minimum 56 px tall; every other control minimum 48 px.
 - Radius: 10 px on a control or a field, 16 px on the top corners of a sheet.
+
+## The controls
+
+Two variants, and no third until a board draws one:
+
+| variant | fill | border | ink |
+|---|---|---|---|
+| solid — the act the screen is for | accent | none | `#FFFFFF` light, `#0F1317` dark |
+| outline — the way out of it | transparent | 1.5 px `border` | ink |
+| ghost — an icon alone, no frame | transparent | none | muted |
+
+- `ghost` is what the day's theme control is drawn with: a 44 px glyph and nothing around it. Added
+  to this table 2026-09-22 rather than left as a variant the code had and the design did not name.
+
+- `CompromisoRetirar.dc.html` draws both, one above the other: «Retirarlo» solid, «Dejarlo como
+  está» outline. That is the pair, and the outline's border is the `border` token, never a tint of
+  the accent.
+- **Disabled drops the fill, in every variant**: muted ink on the ground with a `line` ring. It never
+  changes hue and never goes grey from somewhere else.
+  - **Corrected 2026-09-22, the day it was written.** The first wording said «muted ink over the
+    same fill», which on a solid control measures **1.08:1** light and **1.19:1** dark — unreadable.
+    Dropping the fill measures 4.92 and 6.86. The rule was wrong, not the code that obeyed it; it
+    was caught by measuring a rule nobody had drawn on a board.
+- A variant the design has not dressed is not reachable: the primitive's own type offers these and
+  no others. An undressed variant behind a legal prop is the same gap as an undressed export — it
+  just takes one more keystroke to reach. Settled 2026-09-22, after `variant="outline"` was measured
+  painting a library's teal.
 
 ## The boards
 
@@ -106,6 +153,7 @@ On the canvas, in three pages. A module that draws a screen cites its board by n
 | `MetaNueva.dc.html` | the least it takes to open a goal |
 | `CompromisoNuevo.dc.html` | adding a commitment: what it is, how often, what satisfies it (RP-12) |
 | `CompromisoRetirar.dc.html` | the sheet that retires one, saying what it leaves intact (RP-13) |
+| `SueltaBorrar.dc.html` | deleting a one-off, and how it differs from finishing one (RP-22) |
 | `Entrar.dc.html` | the link sent to an address (RP-18) |
 
 ## The boards that do not exist
@@ -138,6 +186,21 @@ Say what is missing, so a gap nobody drew reads as a gap nobody needed.
 - **The day holds every open goal at once, grouped, with no selector**, and the one-offs sit below
   the last goal. With four goals the person scrolls. Taken by the user 2026-09-22;
   `HoyVarias.dc.html` is the board that shows it.
+- **The theme control is binary** (RNP-08). It offers light and dark; «system» is the state before a
+  choice is made, never a third thing the control cycles to. Settled 2026-09-22 against a control
+  that cycled three ways.
+- **The tap floor is 48 px, with two named exceptions**: the mark, 24 px inside its 56 px row, and
+  the theme control at 44. Both clear RNP-07's 32.
+- **A field's label takes the section label's type** — 11 px mono, uppercase, 0.14 em, muted — and
+  has no type of its own. It is what `MetaNueva.dc.html`, `HoyCantidad.dc.html` and
+  `CompromisoNuevo.dc.html` already draw; written down 2026-09-22 so it reads as a decision rather
+  than a coincidence.
+- **A quantity is offered as chips, not typed** (RP-03). `HoyCantidad.dc.html` draws four, with the
+  number the plan expects already selected. Typing a number is the exception, not the path.
+- **Deleting a one-off reuses the retire sheet** (RP-22). No swipe and no ×: this app has neither,
+  and a gesture invented for one row is a gesture nobody finds. The sheet's sentence carries the
+  only thing anyone hesitates over — done leaves a record, deleted leaves nothing. Drawn
+  2026-09-22 on `SueltaBorrar.dc.html`.
 - **A cadence is chosen with chips, not a menu** (RP-12). «días sueltos» opens a row of seven day
   toggles; the other three cadences replace that row with one number. Drawn 2026-09-22 on
   `CompromisoNuevo.dc.html`, which unblocks the commitment act.
