@@ -537,7 +537,7 @@ registry's 30-second heartbeat: `heartbeat_at` never advanced and the failure wa
 directions — no error, no row change. `.catch(() => {})` is enough to dispatch it, and is what a
 fire-and-forget statement wants anyway.
 
-### Unconfirmed: claims may survive a connection through the pooler
+### Confirmed 2026-09-22: claims (and role) can survive a connection through the pooler
 
 **Not reproduced in a real suite, and not root-caused. Written down so it is not lost, not so it is
 believed.** On 2026-09-06, three ad-hoc probe scripts — fresh connections, nothing open in
@@ -556,6 +556,91 @@ It did **not** reproduce inside the e2e suite's single persistent connection, an
 the identity Postgres sees. If a claim can outlive its connection, a policy test can pass under the
 wrong identity and prove nothing. Chase it with two scripts and one connection string before
 trusting any single-statement identity swap again.
+
+**Confirmed, with numbers, 2026-09-22, by `apps/pulsar/scripts/check-policies.ts`'s own validation.**
+This is the one assertion in that script that reads a shared physical resource — the Supavisor pool
+behind one `DATABASE_URL` — rather than a single self-contained transaction, and it is exactly the
+one that flakes. Three repros, same connection string, `max: 1` pools throughout:
+
+1. **On correct code, no load: reliable.** Ten consecutive runs of `check:policies`, nothing else
+   hitting the database on purpose (five other lanes' ambient traffic aside): P27 (the assertion that
+   nothing settled with `is_local = true` survives past its own transaction) passed all ten.
+2. **On correct code, under a second client hammering `select 1` in five parallel loops on the same
+   `DATABASE_URL`: unreliable.** Ten runs, same P27, same correct code: **5 of 10 failed** — a false
+   red, the settle really did not survive, but only because the fresh connection `check:policies`
+   itself opened for its "bare, unsettled" query landed on a *different* physical backend than the one
+   its own settled transaction had just used two statements earlier. The identity did not leak; the
+   assertion's assumption that "this pool, `max: 1`" means "one physical backend for this whole
+   process" does not hold under contention.
+3. **On a real regression (`is_local` flipped `false` in all four `set_config` calls of
+   `settleSessionSql`), no artificial load beyond the other four lanes' ambient traffic: mostly
+   caught, not always.** Ten runs: **8 of 10 failed red** (caught), **2 of 10 passed green** — a false
+   green, on a genuinely broken settle. The two misses are not distinguishable from case 1's "reliable
+   when idle": they happened when this script's own two connections (the settled one and the bare
+   check) happened to land on the *same* backend, which is exactly when a session-scoped leak is
+   visible, and did not when they did not.
+
+**The signal that survives this is not any one numbered assertion — it is that a false result runs in
+both directions, on the same mechanism, depending on unrelated contention.** Trust `check:policies`'
+exit code as reported by one run, and re-run once before concluding a `FAIL` on `P27` alone is real;
+never conclude a settle bug is *absent* from ten green runs of `P27` under load, and never conclude a
+correct settle is *broken* from one red one taken alone. A different assertion in the same script
+never showed this: `P26` (does the settle work at all, checked inside its own transaction, on its own
+connection, in one round trip) caught the settle-dropped mutation ten times out of ten runs — because
+it never depends on which backend a *later*, separate connection happens to draw.
+
+**A second, more serious confirmation, found by accident while running the drill above.** After the
+`is_local` mutation runs, fresh connections opened afterwards — new scripts, no relation to the
+mutated code, which had already been reverted in the source — kept drawing role `authenticated`
+instead of the login role `postgres`: **7 of 20** fresh, single-use connections measured `current_user
+= authenticated` immediately after connecting, with nothing of this session's asking for that role.
+The physical backend Supavisor handed back still carried the *session-scoped* `role` a earlier,
+already-finished process had set with `is_local = false`. `RESET ALL` on that connection fixed it
+**1 of 7** times; `DISCARD ALL` fixed it **7 of 7**. Forty fresh connections issuing `DISCARD ALL`
+before closing found the pool clean (`0` dirty) on the next two follow-up passes of forty each.
+
+**Practically:** a mutation to `is_local` — even one applied to a file for thirty seconds and reverted
+before the next command — can leave the *shared* Supavisor pool behind one `DATABASE_URL` carrying a
+stuck role for an unrelated, later connection, on a resource every lane's dev server and every other
+lane's suite draws from. `DISCARD ALL` (not `RESET ALL`) is what clears a poisoned backend. A worker
+running this specific mutation again should immediately follow it with a flush of a few dozen fresh
+connections issuing `DISCARD ALL`, and should not assume `RESET ALL` inside its own test connection is
+enough.
+
+**This is a working rule now, not a curiosity — escalated twice in one day, 2026-09-22.**
+
+A second validation pass repeated the drill above and made every number worse. Its own measurement of
+`P27` against the real `is_local` regression, with no load beyond the other lanes' ambient traffic:
+**7 of 10 caught**, worse than the first pass's 8 of 10. Its own pool-poisoning measurement: **17 of
+20** fresh connections dirty after ten repetitions of the mutation, against a **0 of 20** baseline
+taken immediately before touching anything — worse than the first pass's 7 of 20, from more
+repetitions of the identical mutation.
+
+**The fix applied for `P27`:** read `pg_backend_pid()` from the settled transaction and from the bare
+query that follows it; if the two pids disagree, retry the bare query once; if they still disagree,
+report `INCONCLUSIVE` — never `PASS` — instead of comparing roles across backends that were never the
+same connection. Measured after the fix, ten more repetitions of the real `is_local` regression, same
+ambient conditions: **10 of 10 caught**, zero `INCONCLUSIVE`. The gate does not eliminate the
+underlying pooler behaviour — it stops the assertion from drawing a conclusion when it cannot tell
+whether it measured anything.
+
+**The poisoning itself got worse under repetition, in the same session that fixed the assertion.**
+Immediately after those ten repetitions (the pid-gated ones, code correct, mutation reverted before
+running them): **20 of 20** fresh connections dirty — every single one measured, not a subset. Two
+follow-up passes of forty connections each, every one issuing `DISCARD ALL` before closing, brought it
+to **0 of 40**, confirmed by a fresh measurement of **0 of 20** immediately after, and by three
+subsequent runs of `check:policies` on correct code all showing `P27 PASS` on a clean backend. Before
+the flush, three runs of `check:policies` on correct, unmutated code **all failed `P27`** — not because
+the settle broke, but because the bare query on those runs kept landing on a backend still poisoned
+from the mutation drill ten runs earlier, in the same session.
+
+**The rule this makes, not a suggestion:** anyone who flips `is_local` on this shared `DATABASE_URL` —
+to reproduce this trap, to test a fix for it, for any reason — must flush the pool with several dozen
+`DISCARD ALL` connections **before ending their session**, not only "if convenient." The pool is shared
+with the other four lanes' dev servers and suites; leaving it dirty hands the next unrelated query on
+any of them a stuck role, and the only symptom is a permission error or an `RLS` result that makes no
+sense for code nobody just changed. A measurement of "clean before, clean after" belongs in that
+worker's own report, not an assumption.
 
 ### A trusted-pointer check turns `on delete set null` into a refusal
 
