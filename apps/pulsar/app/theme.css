@@ -21,6 +21,7 @@ body {
   --pulsar-accent: #1c6e5a;
   --pulsar-accent-soft: #dceae5;
   --pulsar-on-accent: #ffffff;
+  --pulsar-scrim: rgba(18, 23, 28, 0.34);
 }
 
 .dark {
@@ -35,6 +36,9 @@ body {
   --pulsar-accent: #4fbea0;
   --pulsar-accent-soft: #17332c;
   --pulsar-on-accent: #0f1317;
+  /* Darker than the dark ground on purpose: a sheet is raised, and it has to
+     lift off what is behind it on both faces. */
+  --pulsar-scrim: rgba(5, 7, 9, 0.62);
 }
 
 /* docs/pulsar/DESIGN.md "Type" — a figure is set in mono, a sentence in
@@ -56,6 +60,9 @@ body {
   --pulsar-text-measure-weight: 500;
   --pulsar-text-unit-size: 11px;
   --pulsar-text-measure-tracking: 0.02em;
+  --pulsar-text-sheet-title-size: 21px;
+  --pulsar-text-line-size: 15px;
+  --pulsar-text-line-leading: 1.6;
 }
 
 body {
@@ -73,4 +80,12 @@ body {
    `--heading-font-family` follows, since Radix defines it from this one. */
 .radix-themes {
   --default-font-family: var(--font-sans);
+  /* The theme root carries its own ink and its own ground, from Radix's grey
+     scale: on the light face they land close to the tokens by coincidence, on
+     the dark face they do not. `--color-overlay` is the black alpha every
+     overlay Radix draws reaches for, and the scrim is a decision of the
+     design, not of the library. */
+  color: var(--pulsar-ink);
+  background-color: var(--pulsar-ground);
+  --color-overlay: var(--pulsar-scrim);
 }

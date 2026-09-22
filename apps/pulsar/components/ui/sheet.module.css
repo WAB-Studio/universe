@@ -33,20 +33,18 @@
 
 .title.title {
   margin: 0;
-  font-size: 21px;
+  font-size: var(--pulsar-text-sheet-title-size);
   font-weight: var(--pulsar-text-title-weight);
   letter-spacing: var(--pulsar-text-title-tracking);
   color: var(--pulsar-ink);
 }
 
-/* docs/pulsar/DESIGN.md "Type": a sheet's title is 21px/600/-0.02em and the
-   line under it 15px/1.6 in ink secondary. The weight and the tracking come
-   from the tokens; the two sizes have none yet, so they are written here and
-   named in the report rather than invented elsewhere. */
+/* docs/pulsar/DESIGN.md "Type": the line under a sheet's title, in ink
+   secondary. Every size in that table is a token, this one included. */
 .description.description {
   margin: 6px 0 0;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: var(--pulsar-text-line-size);
+  line-height: var(--pulsar-text-line-leading);
   color: var(--pulsar-ink-secondary);
 }
 
