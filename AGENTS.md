@@ -85,6 +85,7 @@ Contract: `docs/SPEC.md` §1. Model and invariants: §2. Stack: §4. Flows: `doc
 ### The canvases
 
 - `apps/voyager` — «Diccionario de lectura», https://claude.ai/code/artifact/92f7291c-d0f3-4134-b652-be4affe98521
+- `apps/pulsar` — «Bitácora de metas», https://claude.ai/artifact/5ZNtobfQDzeBNFcEMs38Qp
 - `apps/orbit` — **none yet.** Its screens were built before this rule. The next orbit screen opens
   one and names it here.
 - Add the URL here the day a canvas is created. A canvas nobody can find is a canvas nobody uses.
