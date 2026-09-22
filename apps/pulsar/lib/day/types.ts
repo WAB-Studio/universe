@@ -2,9 +2,10 @@
 // nothing here names an app, a table or a reading-app search: RP-07 and
 // RNP-10 both require a source to be configuration the engine never inspects.
 
-// What counts and how often (RP-12). `weekdays.days` uses `Date#getUTCDay`'s
-// own numbering (0 = Sunday .. 6 = Saturday), the same one `zone.ts` reads a
-// civil date's weekday with, so the two never need a translation table.
+// What counts and how often (RP-12). `weekdays.days` is ISO 8601 (1 = Monday
+// .. 7 = Sunday), the same numbering as `goals.commitments.cadence_weekdays`
+// in the database — its CHECK refuses `0`. `lib/day/cadence.ts`'s
+// `weekdayOf` is the only place that turns a civil date into this number.
 export type Cadence =
   | { kind: "daily" }
   | { kind: "weekdays"; days: number[] }

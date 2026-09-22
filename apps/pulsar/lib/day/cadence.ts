@@ -8,10 +8,14 @@ function daysBetween(from: string, to: string): number {
   return Math.round(ms / 86_400_000);
 }
 
-// 0 = Sunday .. 6 = Saturday, read from the midday-UTC instant so no local
-// offset can shift a civil date onto the wrong weekday.
+// ISO 8601: 1 = Monday .. 7 = Sunday, matching `goals.commitments
+// .cadence_weekdays` in the database, which is ISO and whose CHECK refuses
+// `0`. `Date#getUTCDay` numbers Sunday `0`, so this is the one place in the
+// app that turns that into ISO — the only translation between the two
+// numbering, so a name only guessed at cannot drift from it.
 function weekdayOf(day: string): number {
-  return civilDateToDate(day).getUTCDay();
+  const native = civilDateToDate(day).getUTCDay();
+  return native === 0 ? 7 : native;
 }
 
 // How many of `facts` (for this one commitment) landed on a day that is in

@@ -43,11 +43,35 @@ test("daily: a retired commitment asks nothing from the day after it was retired
 
 // --- weekdays ---
 
-test("weekdays: asks only on the named weekdays (0 = Sunday .. 6 = Saturday)", () => {
-  // 2026-03-02 is a Monday, 2026-03-03 a Tuesday.
+// 2026-03-02 is a Monday; the week runs to Sunday 2026-03-08.
+const weekMondayToSunday = [
+  "2026-03-02",
+  "2026-03-03",
+  "2026-03-04",
+  "2026-03-05",
+  "2026-03-06",
+  "2026-03-07",
+  "2026-03-08",
+];
+
+test("weekdays: asks only on the named weekday (ISO: 1 = Monday .. 7 = Sunday)", () => {
   const p = plan({ cadence: { kind: "weekdays", days: [1] } });
-  assert.equal(asksOn(p, "2026-03-02", []), true);
-  assert.equal(asksOn(p, "2026-03-03", []), false);
+  assert.equal(asksOn(p, "2026-03-02", []), true, "Monday");
+  assert.equal(asksOn(p, "2026-03-03", []), false, "Tuesday");
+});
+
+test("weekdays: a commitment for Sunday (7) asks on Sunday and on no other day", () => {
+  // The old, non-ISO encoding read Sunday as 0, which this cadence never
+  // holds — a plan with `days: [7]` would have asked on no day at all.
+  const p = plan({ cadence: { kind: "weekdays", days: [7] } });
+  const asked = weekMondayToSunday.filter((day) => asksOn(p, day, []));
+  assert.deepEqual(asked, ["2026-03-08"], "only the Sunday of the week");
+});
+
+test("weekdays: a commitment for Monday (1) asks on Monday and on no other day", () => {
+  const p = plan({ cadence: { kind: "weekdays", days: [1] } });
+  const asked = weekMondayToSunday.filter((day) => asksOn(p, day, []));
+  assert.deepEqual(asked, ["2026-03-02"], "only the Monday of the week");
 });
 
 test("weekdays: an empty day list never asks", () => {
