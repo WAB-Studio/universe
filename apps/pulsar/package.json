@@ -1,0 +1,51 @@
+{
+  "name": "pulsar",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "next dev --port ${PORT:-3200}",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint --cache",
+    "typecheck": "tsgo --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file=.env.local ../../node_modules/drizzle-kit/bin.cjs migrate",
+    "check:unit": "node --experimental-test-module-mocks --import tsx --test \"lib/**/*.test.ts\"",
+    "check:e2e": "node ../../node_modules/@playwright/test/cli.js test",
+    "check:policies": "node --import tsx --env-file=.env.local scripts/check-policies.ts",
+    "check:day": "node --import tsx --env-file=.env.local scripts/check-day.ts",
+    "harness:session": "node --import tsx --env-file=.env.local scripts/harness/session.ts",
+    "harness:seed": "node --import tsx --env-file=.env.local scripts/harness/seed.ts"
+  },
+  "dependencies": {
+    "@radix-ui/themes": "^3.3.0",
+    "@repo/supabase-auth": "*",
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.112.4",
+    "@t3-oss/env-nextjs": "^0.13.11",
+    "drizzle-orm": "^0.45.2",
+    "lucide-react": "^1.34.0",
+    "next": "16.3.3",
+    "next-intl": "^4.13.7",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@repo/harness-registry": "*",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.3",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}
