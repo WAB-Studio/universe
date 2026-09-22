@@ -1,1 +1,24 @@
-{}
+{
+  "title": "Hoy",
+  "unreadableEvidence": "No pudimos leer una fuente. Lo que declaraste hoy sigue aquí.",
+  "commitmentFallback": "Compromiso {n}",
+  "theme": {
+    "toLight": "Cambiar a modo claro",
+    "toDark": "Cambiar a modo oscuro"
+  },
+  "empty": {
+    "title": "Todavía no tienes una meta abierta.",
+    "action": "Crear una meta"
+  },
+  "errors": {
+    "notFound": "Eso ya no existe. Recarga la página.",
+    "evidenceOnly": "Eso lo cierra una fuente, no un toque.",
+    "quantityRequired": "Ese compromiso pide una cantidad.",
+    "subjectInvalid": "Falta decir a qué compromiso o suelta pertenece esto.",
+    "noteEmpty": "La nota no puede quedar en blanco.",
+    "noteTooLong": "La nota es muy larga. Escribe máximo 280 caracteres.",
+    "quantityInvalid": "Escribe un número entero mayor que cero.",
+    "invalid": "Eso no es válido.",
+    "signedOut": "Tu sesión terminó. Entra otra vez."
+  }
+}
