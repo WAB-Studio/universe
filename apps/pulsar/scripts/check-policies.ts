@@ -1,7 +1,8 @@
 /**
  * Drives every policy and grant on `goals` against the real database — and the
- * `settleSessionSql` statement `lib/session.ts`'s `withGoalsDb` rests on —
- * instead of reading either from a migration (AGENTS.md, "Verification").
+ * guard-and-settle body `lib/session.ts`'s `withGoalsDb` runs before every
+ * query — instead of reading either from a migration (AGENTS.md,
+ * "Verification").
  *
  * Two parts, in the shape of `apps/voyager/scripts/check-sync.ts`:
  *
@@ -12,20 +13,23 @@
  * runs inside its own savepoint, so one `42501` never aborts the ones after
  * it. `anon` is driven too and refused everything.
  *
- * Part 2 drives the settle mechanism itself. `lib/session.ts`'s `withGoalsDb`
- * cannot be called from a plain script: `verifiedClaims` needs `next/headers`'
- * `cookies()`, which throws outside a request — the same wall module 3's own
- * validator hit for orbit. `withSettledDb` below mirrors its contract
- * (throw before a connection is taken, settle with the real, shared
- * `settleSessionSql`, never a hand-rolled stand-in), so a regression to
- * either still turns this script red.
+ * Part 2 calls `withSettledTransaction` (`@/lib/settled-transaction`) —
+ * the exact function `withGoalsDb` calls, not a copy of it — so a regression
+ * to either turns this script red. `withGoalsDb` itself still cannot run from
+ * a plain script (`verifiedClaims` needs `next/headers`'s `cookies()`, which
+ * throws outside a request — the same wall module 3's own validator hit for
+ * orbit), so this part builds its own session object directly instead of
+ * asking Supabase for one; only that lookup is out of reach here, not the
+ * boundary it guards.
  */
 import { randomUUID } from "node:crypto";
 
-import { settleSessionSql } from "@repo/supabase-auth/settle";
 import { createClient } from "@supabase/supabase-js";
+import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import postgres from "postgres";
+
+import { withSettledTransaction } from "@/lib/settled-transaction";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) throw new Error("DATABASE_URL is not set");
@@ -112,7 +116,11 @@ async function checkPoliciesAndGrants(sql: postgres.Sql): Promise<void> {
   const intruder = randomUUID();
   const forcedRollback = Symbol("forced rollback");
 
-  const [before] = await sql<{ count: string }[]>`select count(*)::text as count from goals.facts`;
+  // Scoped to these two synthetic ids, never a bare `count(*)`: five lanes
+  // share this database and another one's own facts land in this table while
+  // this runs (measured live: a `harness-5@example.invalid` row mid-run).
+  const [before] = await sql<{ count: string }[]>`
+    select count(*)::text as count from goals.facts where user_id in (${subject}, ${intruder})`;
 
   await sql
     .begin(async (tx) => {
@@ -302,36 +310,27 @@ async function checkPoliciesAndGrants(sql: postgres.Sql): Promise<void> {
       if (error !== forcedRollback) throw error;
     });
 
-  const [after] = await sql<{ count: string }[]>`select count(*)::text as count from goals.facts`;
-  assert("P25", before.count === after.count, `goals.facts before = ${before.count}, after = ${after.count}`);
+  const [after] = await sql<{ count: string }[]>`
+    select count(*)::text as count from goals.facts where user_id in (${subject}, ${intruder})`;
+  assert(
+    "P25",
+    before.count === "0" && after.count === "0",
+    `facts for these two subjects, before = ${before.count}, after = ${after.count}`,
+  );
 }
 
-type Session = { claims: Record<string, unknown> } | null;
+// The two adapters `withSettledTransaction` needs to run on a raw `postgres`
+// connection instead of drizzle's: `begin` opens this driver's own
+// transaction (the same `UnwrapPromiseArray` cast `lib/session.ts` needs for
+// `db.transaction`), `run` turns the `SQL` object `settleSessionSql` returns
+// into the text-and-params `tx.unsafe` takes.
+function beginOn(sql: postgres.Sql) {
+  return <T>(fn: (tx: postgres.TransactionSql) => Promise<T>): Promise<T> => sql.begin(fn) as Promise<T>;
+}
 
-// Mirrors `withGoalsDb` (`apps/pulsar/lib/session.ts`): throws before a
-// connection is ever taken from the pool when there is no session, otherwise
-// opens its own transaction and settles it with the real, shared
-// `settleSessionSql` — never a hand-rolled stand-in of it — so a regression to
-// that shared statement is caught here even though `withGoalsDb` itself
-// cannot run outside a request.
-async function withSettledDb<T>(
-  session: Session,
-  sql: postgres.Sql,
-  fn: (tx: postgres.TransactionSql) => Promise<T>,
-): Promise<T> {
-  if (!session) throw new Error("withSettledDb called without a verified session");
-
-  // `sql.begin`'s own type widens a single non-array `T` through
-  // `UnwrapPromiseArray`, which is exact at runtime but not admitted back
-  // into a bare `T` by the compiler; every caller here passes a single value.
-  return sql.begin(async (tx) => {
-    const settle = new PgDialect().sqlToQuery(
-      settleSessionSql({ claims: JSON.stringify(session.claims), searchPath: "goals, public" }),
-    );
-    await tx.unsafe(settle.sql, settle.params as string[]);
-
-    return fn(tx);
-  }) as Promise<T>;
+async function runOn(tx: postgres.TransactionSql, statement: SQL): Promise<unknown> {
+  const query = new PgDialect().sqlToQuery(statement);
+  return tx.unsafe(query.sql, query.params as string[]);
 }
 
 async function checkSettleMechanism(): Promise<void> {
@@ -344,11 +343,15 @@ async function checkSettleMechanism(): Promise<void> {
 
   const session = { claims: { sub: randomUUID(), role: "authenticated", aud: "authenticated" } };
 
-  // With a session: the real `settleSessionSql` actually seats the role and
-  // drops BYPASSRLS, driven end to end rather than asserted from the file.
-  const [seated] = await withSettledDb(
+  // With a session: the real `withSettledTransaction` actually seats the role
+  // and drops BYPASSRLS, driven end to end rather than asserted from the file
+  // — the very function `withGoalsDb` calls, not a copy of it.
+  const [seated] = await withSettledTransaction<postgres.TransactionSql, { role: string; bypasses: boolean }[]>(
     session,
-    sql,
+    "check-policies",
+    "goals, public",
+    beginOn(sql),
+    runOn,
     (tx) =>
       tx<{ role: string; bypasses: boolean }[]>`
         select current_user as role,
@@ -375,9 +378,11 @@ async function checkSettleMechanism(): Promise<void> {
   // that method cannot tell one transaction's statements from another's).
   const sentBefore = wire.length;
   let threw = false;
-  await withSettledDb(null, sql, async () => undefined).catch(() => {
-    threw = true;
-  });
+  await withSettledTransaction(null, "check-policies", "goals, public", beginOn(sql), runOn, async () => undefined).catch(
+    () => {
+      threw = true;
+    },
+  );
   const sentWithNoSession = wire.length - sentBefore;
   assert(
     "P28",

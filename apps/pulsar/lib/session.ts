@@ -2,12 +2,12 @@ import "server-only";
 
 import {
   createSupabaseServerClient,
-  settleSessionSql,
   verifiedClaims,
 } from "@repo/supabase-auth";
 
 import { db } from "@/db/client";
 import { env } from "@/lib/env";
+import { withSettledTransaction } from "@/lib/settled-transaction";
 
 export type Person = { id: string; email: string };
 
@@ -38,8 +38,11 @@ export async function getPerson(): Promise<Person | null> {
  * `DATABASE_URL` connects as `postgres`, which does bypass them: without this
  * settle a query does not fail, it quietly returns everyone's rows.
  *
- * Without a session there is no query — this throws before `db.transaction`,
- * so no connection is taken and no unrestricted one is ever fallen back to.
+ * The guard and the settle themselves live in `withSettledTransaction`
+ * (`@/lib/settled-transaction`), not here: that function holds no
+ * `next/headers` and no `@/db/client`, so `apps/pulsar/scripts/check-policies.ts`
+ * calls the very same one instead of a copy of it, and a mutation to either
+ * is caught from both places.
  */
 async function withSettledDb<T>(
   door: string,
@@ -47,16 +50,15 @@ async function withSettledDb<T>(
   fn: (tx: Transaction) => Promise<T>,
 ): Promise<T> {
   const session = await verifiedClaims(createClient);
-  if (!session) throw new Error(`${door} called without a verified session`);
 
-  const claims = JSON.stringify(session.claims);
-
-  return db.transaction(async (tx) => {
-    // One statement, not four: see `settleSessionSql`.
-    await tx.execute(settleSessionSql({ claims, searchPath }));
-
-    return fn(tx);
-  });
+  return withSettledTransaction<Transaction, T>(
+    session,
+    door,
+    searchPath,
+    (cb) => db.transaction(cb),
+    (tx, statement) => tx.execute(statement),
+    fn,
+  );
 }
 
 // The only path from the server to this app's own tables.
