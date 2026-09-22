@@ -286,9 +286,15 @@ goals.facts.day = 2026-09-22  ->  Mon Sep 21 2026 19:00:00 GMT-0500
 Measured 2026-09-22 in `apps/pulsar`, on a probe that read back the fact it had just written.
 
 Drizzle's `date()` column is string mode and is **not** affected: through `db`, `2026-09-22` stays
-`"2026-09-22"`. The trap waits for the first `sql.unsafe`, script or raw-driver query — which is
-exactly where RNP-06 lives, because the day a fact belongs to is the person's day and a `Date` in
-the server's zone is not it. Compare and carry days as strings, or cast `::text` in the SQL.
+`"2026-09-22"`. **It protects more than its own columns.** `drizzle()` patches `client.options.parsers`
+in place when it is constructed (`node_modules/drizzle-orm/postgres-js/driver.js:17`, OID 1082), so
+on the pool `db` was built over, a raw `` sql`…` `` and `sql.unsafe` return the string too. Measured
+the same day, on one pool, before and after.
+
+**So the trap bites a pool with no `drizzle()` over it — a script's own**, which is exactly where it
+was found. That is where RNP-06 lives, because the day a fact belongs to is the person's day and a
+`Date` in the server's zone is not it. Compare and carry days as strings, or cast `::text` in the
+SQL. Do not read this as licence to distrust `db`.
 
 ### `now()` is the transaction's clock, so one INSERT stamps every row identically
 
