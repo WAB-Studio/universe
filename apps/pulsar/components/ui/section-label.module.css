@@ -1,0 +1,11 @@
+/* docs/pulsar/DESIGN.md "Type": 11px mono, uppercase, 0.14em, in muted. */
+.label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--pulsar-text-label-size);
+  font-weight: 500;
+  letter-spacing: var(--pulsar-text-label-tracking);
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--pulsar-muted);
+}

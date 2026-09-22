@@ -1,0 +1,61 @@
+/* Radix centres a dialog inside a scrolling overlay; a sheet is pinned to the
+   foot of the viewport instead. `fixed` takes it out of that grid entirely, so
+   the overlay's own padding and `margin: auto` never apply. Doubled to outrank
+   `.rt-BaseDialogContent:where(.rt-r-size-N)`, which sets the padding and the
+   radius from Radix's own scale. */
+.sheet.sheet {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  inset-block-start: auto;
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: none;
+  margin: 0;
+  max-block-size: 85%;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  background-color: var(--pulsar-raised);
+  color: var(--pulsar-ink);
+  --dialog-content-padding: 20px;
+  /* A sheet is portalled out of the page, so it inherits nothing the page
+     sets: the family it draws sentences in is repeated here. */
+  --default-font-family: var(--font-sans);
+  --heading-font-family: var(--font-sans);
+  font-family: var(--font-sans);
+  padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* The one affordance that says the surface came up from below. Quiet: it is a
+   stroke, not a word (docs/pulsar/DESIGN.md "Tokens"). */
+.grabber {
+  inline-size: 36px;
+  block-size: 4px;
+  border-radius: 2px;
+  margin: 0 auto 16px;
+  background-color: var(--pulsar-quiet);
+}
+
+.title.title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pulsar-ink);
+}
+
+.description.description {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pulsar-muted);
+}
+
+/* Every control a sheet holds stands 48px tall on its own (button.module.css,
+   field.module.css); this is only the rhythm between them. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-block-start: 20px;
+}

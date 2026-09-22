@@ -1,0 +1,59 @@
+/* docs/pulsar/DESIGN.md "The marks": a 24px circle at the head of the row.
+   `border-box` so every state occupies the same 24px and the marks of a column
+   line up on one edge. */
+.mark {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: 50%;
+}
+
+.check {
+  inline-size: 14px;
+  block-size: 14px;
+}
+
+/* The design's stroke is 1.5px and Chromium floors a border-width to a whole
+   CSS pixel: measured at a scale factor of 4, `border: 1.5px` paints the same
+   4 device pixels `border: 1px` does, which is the row's own hairline. An
+   inset shadow keeps the half pixel — 6 device pixels for the same stroke —
+   so the ring reads heavier than a rule, which is what the mark is for. */
+.ring {
+  box-shadow: inset 0 0 0 1.5px currentcolor;
+}
+
+/* Done, declared: the accent filled, no stroke, a check in the colour the
+   token table names for text on the accent. */
+.declared {
+  background: var(--pulsar-accent);
+  color: var(--pulsar-on-accent);
+}
+
+/* Done, by evidence: the same accent, softened to a fill and kept as a stroke.
+   The difference from `declared` is fill, never hue — a second hue would be a
+   second accent, and this design has one. */
+.evidence {
+  background: var(--pulsar-accent-soft);
+  color: var(--pulsar-accent);
+}
+
+/* Not done: a stroke and nothing inside. Quiet, because an empty mark is a
+   stroke, not a word (docs/pulsar/DESIGN.md "Tokens"). The design has no
+   colour for failure, so this is as far as an unmet day is drawn. */
+.empty {
+  background: transparent;
+  color: var(--pulsar-quiet);
+}
+
+/* The one row nothing has written yet. A dash pattern is the point here and no
+   shadow draws one, so this is the single state whose stroke is a border —
+   1px painted, against 1.5px everywhere else. */
+.dashed {
+  box-shadow: none;
+  border: 1.5px dashed currentcolor;
+}

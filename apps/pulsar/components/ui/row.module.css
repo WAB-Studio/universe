@@ -1,0 +1,54 @@
+/* A plain `<button>` sits outside Radix's `.rt-reset`, so the user agent's own
+   background, border and font are cleared here. */
+.row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  inline-size: 100%;
+  min-block-size: 56px;
+  padding: 10px 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  border-block-end: 1px solid var(--pulsar-line);
+  color: var(--pulsar-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The last row of a group: the group's own spacing rules it from the next. */
+.flush {
+  border-block-end: 0;
+}
+
+.row:disabled {
+  cursor: default;
+}
+
+/* Inset, so the ring does not fall outside the page's gutter on a phone. */
+.row:focus-visible {
+  outline: 2px solid var(--pulsar-accent);
+  outline-offset: -2px;
+  border-radius: 10px;
+}
+
+/* A long name wraps rather than pushing the measure off the row. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.leading,
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}

@@ -1,0 +1,31 @@
+/* docs/pulsar/DESIGN.md "Tokens": the ground. The column is a flex stack so a
+   screen spaces its groups with `gap` instead of a margin of its own.
+
+   Radix Themes pins `--default-font-family` to its own system stack on the
+   theme root, and every control it draws reads that variable rather than the
+   body's family: without these three lines a sentence renders in the system
+   font and Archivo never draws (docs/pulsar/DESIGN.md "Type"). */
+.page {
+  --default-font-family: var(--font-sans);
+  --heading-font-family: var(--font-sans);
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100%;
+  background: var(--pulsar-ground);
+  color: var(--pulsar-ink);
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Past the phone the column stops growing and centres: only the review's table
+   changes shape rather than width (docs/pulsar/DESIGN.md "The boards that do
+   not exist"), and it widens itself. */
+@media (min-width: 700px) {
+  .page {
+    max-width: 640px;
+    margin-inline: auto;
+    width: 100%;
+  }
+}

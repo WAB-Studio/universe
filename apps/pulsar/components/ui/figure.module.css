@@ -1,0 +1,32 @@
+/* docs/pulsar/DESIGN.md "Type": every figure is DM Mono at 0.02em. The unit
+   rides the figure's baseline, not its box, so a 26px measure and an 11px
+   unit sit on one line. */
+.figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-mono);
+  letter-spacing: var(--pulsar-text-measure-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+.measure {
+  font-size: var(--pulsar-text-measure-size);
+  font-weight: var(--pulsar-text-measure-weight);
+  line-height: 1.1;
+  color: var(--pulsar-ink);
+}
+
+/* The figure inside a row's metadata line, where it reads beside a sentence. */
+.meta {
+  font-size: var(--pulsar-text-meta-size);
+  line-height: 1.4;
+  color: var(--pulsar-muted);
+}
+
+/* docs/pulsar/DESIGN.md "Tokens": quiet draws the units beside a figure. */
+.unit {
+  font-size: var(--pulsar-text-unit-size);
+  font-weight: 400;
+  color: var(--pulsar-quiet);
+}

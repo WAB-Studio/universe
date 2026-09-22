@@ -1,0 +1,36 @@
+/* The accent Radix draws every variant from is its own teal scale; the token
+   table is the law, so the four steps the variants read are remapped here once
+   and no screen ever states a colour. `a3` is the soft fill, `a11` the accent
+   as text (docs/pulsar/DESIGN.md "Tokens"). Doubled, like every class in this
+   directory, to outrank `.rt-BaseButton:where(.rt-r-size-N)`. */
+.control.control {
+  --accent-9: var(--pulsar-accent);
+  --accent-10: var(--pulsar-accent);
+  --accent-a3: var(--pulsar-accent-soft);
+  --accent-a11: var(--pulsar-accent);
+  --accent-contrast: var(--pulsar-on-accent);
+  border-radius: 10px;
+}
+
+/* `--base-button-height` is what a size step sets; the floor is pinned on top
+   of it so a ghost variant, which Radix sizes by its glyph and switches to
+   `content-box`, cannot fall under it either. */
+.tap48.tap48 {
+  box-sizing: border-box;
+  --base-button-height: 48px;
+  min-inline-size: 48px;
+  min-block-size: 48px;
+}
+
+/* docs/pulsar/DESIGN.md "Decisions taken here": the 44px icon button in the
+   day's header. The one control the design holds under 48. */
+.tap44.tap44 {
+  box-sizing: border-box;
+  --base-button-height: 44px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+.block.block {
+  inline-size: 100%;
+}

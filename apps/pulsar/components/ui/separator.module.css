@@ -1,0 +1,5 @@
+/* docs/pulsar/DESIGN.md "Tokens": the line role, not Radix's own gray step.
+   Doubled to outrank `.rt-Separator:where(.rt-r-size-4)`. */
+.rule.rule {
+  background-color: var(--pulsar-line);
+}
