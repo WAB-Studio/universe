@@ -18,7 +18,9 @@
     "check:policies": "node --import tsx --env-file=.env.local scripts/check-policies.ts",
     "check:day": "node --import tsx --env-file=.env.local scripts/check-day.ts",
     "harness:session": "node --import tsx --env-file=.env.local scripts/harness/session.ts",
-    "harness:seed": "node --import tsx --env-file=.env.local scripts/harness/seed.ts"
+    "harness:seed": "node --import tsx --env-file=.env.local scripts/harness/seed.ts",
+    "harness:mint-session": "node --import tsx --env-file=.env.local scripts/harness/mint-session.ts",
+    "harness:seed-goal": "node --import tsx --env-file=.env.local scripts/harness/seed-goal.ts"
   },
   "dependencies": {
     "@radix-ui/themes": "^3.3.0",
