@@ -2215,3 +2215,31 @@ Two rules follow, and the second is the one that bites:
   until you have checked which lanes are live.
 
 It is the same shape as «One database behind every harness lane» above, one schema over.
+
+## A cold pool makes a real `Promise.all` fan-out measure as a chain
+
+Measured 2026-09-22, module 8's `apps/pulsar/lib/queries/day.ts`. `loadDay` opens
+`withGoalsDb` and `withReadingDb` in the same `Promise.all([...])`, with no await between
+them and no data dependency from one to the other — the fan-out is real in the code. A
+process that measures it right after start can still see two spans that never touch.
+
+With `apps/pulsar/db/client.ts`'s pool already warm — a query or two already run on it —
+both transactions begin **0.2 ms** apart and their two data queries fire within about a
+millisecond of each other. With the same pool cold, in a fresh process: the `goals`
+transaction ran `begin 2871.89 → end 3339.22`, and the `reading` transaction's own
+`begin` did not land until `3361.70` — zero overlap, a **~470 ms** gap with nothing else
+happening in it.
+
+The cause is `idle_timeout: 20` on that pool: after 20 s with no traffic, the next
+statement redials a fresh TCP connection and repeats the TLS handshake before it can send
+`begin`. **No line in `day.ts` can shorten a handshake neither transaction has run yet.**
+`max: 8` rules out the other plausible cause — the two transactions queuing behind one
+shared connection — which was checked and is not what happens here; that queuing is the
+actual bug this measurement would otherwise be mistaken for.
+
+**Decided by the user 2026-09-22: pay it, don't hide it.** Nobody raises `idle_timeout` in
+`db/client.ts` and nobody pre-warms the pool on boot. The day screen's first paint after a
+cold start pays one handshake; every one after it does not. A future session that measures
+two transactions running in series on a fresh process has not found a regression in
+`day.ts` — module 8's own done criterion ("the two transactions overlap in time") is true
+of the warm pool, which is what every request after the first one gets.

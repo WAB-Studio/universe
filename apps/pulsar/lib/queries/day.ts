@@ -14,7 +14,7 @@ import type {
 } from "@/lib/day/types";
 import { readerFor } from "@/lib/evidence/registry";
 import { getPerson, withGoalsDb, withReadingDb, type Transaction } from "@/lib/session";
-import { TIME_ZONE } from "@/lib/zone";
+import { civilDateInZone, TIME_ZONE } from "@/lib/zone";
 
 /**
  * Every source key `withReadingDb`'s query fans out to, kept beside this
@@ -27,6 +27,16 @@ import { TIME_ZONE } from "@/lib/zone";
  * rows belong to. A second source (RNP-10) costs a reader in
  * `lib/evidence/registry.ts`, a row in `goals.evidence_sources`, and one more
  * key here.
+ *
+ * This is also why `withReadingDb` runs one query *per key in this list*,
+ * not one per commitment that actually needs it: today, with one key, that
+ * is four statements total, the number module 8's done criterion measured.
+ * **Four is a fact of today's registry, not a law of this file.** The day a
+ * second key lands, a person with no commitment pointing at it still pays
+ * its query — RNP-03's "bounded" still holds (bounded by the catalogue's own
+ * size, which RNP-10 keeps small), but "four" stops being the count, and
+ * whoever adds that key should expect the round-trip count named in a done
+ * criterion to move, not stay pinned to this comment.
  */
 const KNOWN_EVIDENCE_SOURCE_KEYS = ["reading_lookups"] as const;
 
@@ -164,11 +174,18 @@ function toCadence(row: CommitmentRow): Cadence {
     case "times_per_week":
       return { kind: "times_per_week", count: row.cadence_n ?? 0 };
     case "every_n_days":
-      // `goals.commitments` has no anchor column (a gap between this schema
-      // and the engine's `Cadence` shape): the commitment's own creation day
-      // is the least surprising stand-in, since "every N days" then counts
-      // from the day the person set it up.
-      return { kind: "every_n_days", n: row.cadence_n ?? 1, anchor: row.created_at.slice(0, 10) };
+      // `goals.commitments` has no anchor column: `docs/pulsar/SPEC.md`
+      // settles "every N days" to count from `created_at`, read as the
+      // person's own civil day, never Postgres's UTC render of the
+      // timestamp — `created_at` between 19:00 and 23:59:59 Bogotá already
+      // reads as the next UTC day, so slicing that string would anchor a
+      // fifth of all commitments one day late and silently shift the whole
+      // cadence from the day it was actually set up.
+      return {
+        kind: "every_n_days",
+        n: row.cadence_n ?? 1,
+        anchor: civilDateInZone(new Date(row.created_at)),
+      };
     case "times_per_month":
       return { kind: "times_per_month", count: row.cadence_n ?? 0 };
   }
