@@ -241,6 +241,55 @@ itself, a `created_at` serialised wrong on the way out, and the download cursor 
 
 Measured 2026-09-08.
 
+### `array_length` on an empty array is NULL, so a CHECK built on it admits the row
+
+`array_length('{}'::smallint[], 1)` is **NULL**, not 0 — an empty array has no first dimension.
+A CHECK whose predicate goes NULL is satisfied: Postgres refuses a row only when the constraint
+reads **false**.
+
+`commitments_weekdays_for_weekdays` in `apps/pulsar/db/migrations/0000_*.sql` was written as an
+equality between two predicates:
+
+```
+(cadence_kind = 'weekdays') = (cadence_weekdays is not null and array_length(cadence_weekdays, 1) > 0)
+```
+
+Measured 2026-09-22, before the schema had a single row: a `weekdays` commitment carrying `'{}'`
+**inserted** and read back with zero days, and a `daily` commitment carrying `'{}'` inserted too.
+The constraint's own comment claimed the array was non-empty for `weekdays` and absent for every
+other kind; it enforced neither.
+
+`coalesce(array_length(a, 1), 0) > 0` is the total form. Note that it alone does not close the
+second hole — with it, `daily` plus `'{}'` still reads false = false — so the repair is a CASE
+that says what the other kinds must hold:
+
+```
+case when cadence_kind = 'weekdays'
+     then coalesce(array_length(cadence_weekdays, 1), 0) > 0
+     else cadence_weekdays is null end
+```
+
+Audit any CHECK whose truth passes through a function that answers NULL on an empty or absent
+value. `length(note) <= 280` and `a <@ array[...]` are the same shape and are correct only because
+a null there is legal and a **total** constraint beside them decides whether it may be null at all.
+
+### `postgres@3` parses a `date` column into a local `Date`
+
+`postgres.js` gives OID 1082 a parser that builds a JS `Date`, so a `date` read through the raw
+driver arrives as midnight **in the process's zone** and prints as the day before for any zone west
+of UTC.
+
+```
+goals.facts.day = 2026-09-22  ->  Mon Sep 21 2026 19:00:00 GMT-0500
+```
+
+Measured 2026-09-22 in `apps/pulsar`, on a probe that read back the fact it had just written.
+
+Drizzle's `date()` column is string mode and is **not** affected: through `db`, `2026-09-22` stays
+`"2026-09-22"`. The trap waits for the first `sql.unsafe`, script or raw-driver query — which is
+exactly where RNP-06 lives, because the day a fact belongs to is the person's day and a `Date` in
+the server's zone is not it. Compare and carry days as strings, or cast `::text` in the SQL.
+
 ### `now()` is the transaction's clock, so one INSERT stamps every row identically
 
 `now()` is the transaction start time, not the statement's. A batch insert is one statement in one

@@ -1,0 +1,832 @@
+{
+  "id": "07a21c12-1e46-431d-8622-f4eb517ca5b0",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "goals.goals": {
+      "name": "goals",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "horizon": {
+          "name": "horizon",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measure_name": {
+          "name": "measure_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "measure_unit": {
+          "name": "measure_unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "goals_user_id_users_id_fk": {
+          "name": "goals_user_id_users_id_fk",
+          "tableFrom": "goals",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "goals_select_self": {
+          "name": "goals_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"goals\".\"user_id\""
+        },
+        "goals_insert_self": {
+          "name": "goals_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"goals\".\"goals\".\"user_id\""
+        },
+        "goals_update_self": {
+          "name": "goals_update_self",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"goals\".\"user_id\"",
+          "withCheck": "(select auth.uid()) = \"goals\".\"goals\".\"user_id\""
+        },
+        "goals_delete_self": {
+          "name": "goals_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"goals\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "goals_measure_paired": {
+          "name": "goals_measure_paired",
+          "value": "(\"goals\".\"goals\".\"measure_name\" is null) = (\"goals\".\"goals\".\"measure_unit\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "goals.phases": {
+      "name": "phases",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "goal_id": {
+          "name": "goal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aim": {
+          "name": "aim",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "phases_user_id_users_id_fk": {
+          "name": "phases_user_id_users_id_fk",
+          "tableFrom": "phases",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "phases_goal_id_goals_id_fk": {
+          "name": "phases_goal_id_goals_id_fk",
+          "tableFrom": "phases",
+          "tableTo": "goals",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "goal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "phases_select_self": {
+          "name": "phases_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"phases\".\"user_id\""
+        },
+        "phases_insert_self": {
+          "name": "phases_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"goals\".\"phases\".\"user_id\""
+        },
+        "phases_delete_self": {
+          "name": "phases_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"phases\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "phases_ends_on_after_starts_on": {
+          "name": "phases_ends_on_after_starts_on",
+          "value": "\"goals\".\"phases\".\"ends_on\" >= \"goals\".\"phases\".\"starts_on\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "goals.evidence_sources": {
+      "name": "evidence_sources",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label_key": {
+          "name": "label_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "evidence_sources_key_unique": {
+          "name": "evidence_sources_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "key"
+          ]
+        }
+      },
+      "policies": {
+        "evidence_sources_select_all": {
+          "name": "evidence_sources_select_all",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "goals.commitments": {
+      "name": "commitments",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "goal_id": {
+          "name": "goal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cadence_kind": {
+          "name": "cadence_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cadence_n": {
+          "name": "cadence_n",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cadence_weekdays": {
+          "name": "cadence_weekdays",
+          "type": "smallint[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "satisfaction": {
+          "name": "satisfaction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_quantity": {
+          "name": "target_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "threshold": {
+          "name": "threshold",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "retired_at": {
+          "name": "retired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "commitments_user_id_retired_at_idx": {
+          "name": "commitments_user_id_retired_at_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "retired_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "commitments_user_id_users_id_fk": {
+          "name": "commitments_user_id_users_id_fk",
+          "tableFrom": "commitments",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "commitments_goal_id_goals_id_fk": {
+          "name": "commitments_goal_id_goals_id_fk",
+          "tableFrom": "commitments",
+          "tableTo": "goals",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "goal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "commitments_source_id_evidence_sources_id_fk": {
+          "name": "commitments_source_id_evidence_sources_id_fk",
+          "tableFrom": "commitments",
+          "tableTo": "evidence_sources",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "commitments_select_self": {
+          "name": "commitments_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"commitments\".\"user_id\""
+        },
+        "commitments_insert_self": {
+          "name": "commitments_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"goals\".\"commitments\".\"user_id\""
+        },
+        "commitments_update_self": {
+          "name": "commitments_update_self",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"commitments\".\"user_id\"",
+          "withCheck": "(select auth.uid()) = \"goals\".\"commitments\".\"user_id\""
+        },
+        "commitments_delete_self": {
+          "name": "commitments_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"commitments\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "commitments_weekdays_for_weekdays": {
+          "name": "commitments_weekdays_for_weekdays",
+          "value": "case when \"goals\".\"commitments\".\"cadence_kind\" = 'weekdays' then coalesce(array_length(\"goals\".\"commitments\".\"cadence_weekdays\", 1), 0) > 0 else \"goals\".\"commitments\".\"cadence_weekdays\" is null end"
+        },
+        "commitments_weekdays_iso_range": {
+          "name": "commitments_weekdays_iso_range",
+          "value": "\"goals\".\"commitments\".\"cadence_weekdays\" <@ array[1, 2, 3, 4, 5, 6, 7]::smallint[]"
+        },
+        "commitments_n_for_counted_kinds": {
+          "name": "commitments_n_for_counted_kinds",
+          "value": "(\"goals\".\"commitments\".\"cadence_kind\" in ('times_per_week', 'every_n_days', 'times_per_month')) = (\"goals\".\"commitments\".\"cadence_n\" is not null and \"goals\".\"commitments\".\"cadence_n\" > 0)"
+        },
+        "commitments_quantity_for_quantity": {
+          "name": "commitments_quantity_for_quantity",
+          "value": "(\"goals\".\"commitments\".\"satisfaction\" = 'quantity') = (\"goals\".\"commitments\".\"target_quantity\" is not null and \"goals\".\"commitments\".\"unit\" is not null)"
+        },
+        "commitments_source_for_evidence": {
+          "name": "commitments_source_for_evidence",
+          "value": "(\"goals\".\"commitments\".\"satisfaction\" = 'evidence') = (\"goals\".\"commitments\".\"source_id\" is not null and \"goals\".\"commitments\".\"threshold\" is not null and \"goals\".\"commitments\".\"threshold\" >= 1)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "goals.one_offs": {
+      "name": "one_offs",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "goal_id": {
+          "name": "goal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "one_offs_user_id_users_id_fk": {
+          "name": "one_offs_user_id_users_id_fk",
+          "tableFrom": "one_offs",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "one_offs_goal_id_goals_id_fk": {
+          "name": "one_offs_goal_id_goals_id_fk",
+          "tableFrom": "one_offs",
+          "tableTo": "goals",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "goal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "one_offs_select_self": {
+          "name": "one_offs_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"one_offs\".\"user_id\""
+        },
+        "one_offs_insert_self": {
+          "name": "one_offs_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"goals\".\"one_offs\".\"user_id\""
+        },
+        "one_offs_delete_self": {
+          "name": "one_offs_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"one_offs\".\"user_id\""
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "goals.facts": {
+      "name": "facts",
+      "schema": "goals",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commitment_id": {
+          "name": "commitment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "one_off_id": {
+          "name": "one_off_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "goal_id": {
+          "name": "goal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "written_at": {
+          "name": "written_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "facts_user_id_day_idx": {
+          "name": "facts_user_id_day_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "day",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "facts_user_id_users_id_fk": {
+          "name": "facts_user_id_users_id_fk",
+          "tableFrom": "facts",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "facts_commitment_id_commitments_id_fk": {
+          "name": "facts_commitment_id_commitments_id_fk",
+          "tableFrom": "facts",
+          "tableTo": "commitments",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "commitment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "facts_one_off_id_one_offs_id_fk": {
+          "name": "facts_one_off_id_one_offs_id_fk",
+          "tableFrom": "facts",
+          "tableTo": "one_offs",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "one_off_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "facts_goal_id_goals_id_fk": {
+          "name": "facts_goal_id_goals_id_fk",
+          "tableFrom": "facts",
+          "tableTo": "goals",
+          "schemaTo": "goals",
+          "columnsFrom": [
+            "goal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "facts_select_self": {
+          "name": "facts_select_self",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"facts\".\"user_id\""
+        },
+        "facts_insert_self": {
+          "name": "facts_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"goals\".\"facts\".\"user_id\""
+        },
+        "facts_delete_self": {
+          "name": "facts_delete_self",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(select auth.uid()) = \"goals\".\"facts\".\"user_id\""
+        }
+      },
+      "checkConstraints": {
+        "facts_note_length": {
+          "name": "facts_note_length",
+          "value": "length(\"goals\".\"facts\".\"note\") <= 280"
+        },
+        "facts_one_subject": {
+          "name": "facts_one_subject",
+          "value": "(\"goals\".\"facts\".\"commitment_id\" is null) <> (\"goals\".\"facts\".\"one_off_id\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
