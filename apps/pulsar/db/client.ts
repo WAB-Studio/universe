@@ -26,4 +26,7 @@ const sql =
 
 if (process.env.NODE_ENV !== "production") globalForDb.sql = sql;
 
+// `DATABASE_URL` connects as `postgres`, which bypasses RLS. `lib/session.ts`
+// is the one file allowed to import this — `eslint.config.mjs` enforces it,
+// not this comment.
 export const db = drizzle(sql, { schema, casing: "snake_case" });

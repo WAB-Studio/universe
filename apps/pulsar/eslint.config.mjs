@@ -27,12 +27,46 @@ const eslintConfig = defineConfig([
           message: "Reach a store from `lib/` only.",
         },
       ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              // `group`'s gitignore-style matching takes the source string
+              // literally: a `.js` (or `.jsx`) suffix — legal ESM, and the
+              // one TS resolves without a `TS5097`/`TS2307` — slips past
+              // `**/db/client`. `regex` matches the module path underneath
+              // whatever extension, real or not, the import spells out.
+              regex: "(^|/)db/client(\\.[cm]?[jt]sx?)?$",
+              message:
+                "The only doors to this app's tables are `withGoalsDb` and `withReadingDb`, from `@/lib/session`.",
+            },
+          ],
+        },
+      ],
+      // `no-restricted-imports` does not see `import()`: it inspects
+      // `ImportDeclaration` and `Export...Declaration`, never `ImportExpression`.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "ImportExpression[source.value=/(^|\\/)db\\/client(\\.[cm]?[jt]sx?)?$/]",
+          message:
+            "The only doors to this app's tables are `withGoalsDb` and `withReadingDb`, from `@/lib/session`.",
+        },
+      ],
     },
   },
   // `lib/` is where the stores live, so it is the one place allowed to name them.
   {
     files: ["lib/**"],
     rules: { "no-restricted-globals": "off" },
+  },
+  // `session.ts` settles the connection before every query it runs — the one
+  // file allowed to hold the raw pool the rules above forbid everywhere else.
+  {
+    files: ["lib/session.ts"],
+    rules: { "no-restricted-imports": "off", "no-restricted-syntax": "off" },
   },
   // A spec asserts what the device really holds, so it reads the store the
   // browser exposes rather than the one the app imports.
