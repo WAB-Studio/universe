@@ -77,7 +77,8 @@ of this gets built, and no schema, table or column is "prepared for" it.
 - [ ] **RP-12** — A goal holds commitments. A commitment names what counts and how often: every day, named weekdays, a number of times a week, every N days, or a number of times a month.
   - Widened 2026-09-22 from the three cadences one plan needed. A habit measured by the month — a haircut, a deep clean, a call home — had nowhere to live.
 - [ ] **RP-13** — A commitment is retired, never deleted. The facts it explains stay explained and the weeks it governed keep reading as they did.
-- [ ] **RP-14** — A goal names **one** measure that predicts its progress — minutes spoken, pages read — and every fact that carries a quantity feeds it.
+- [ ] **RP-14** — A goal names **one** measure that predicts its progress — minutes spoken, pages read — and every fact that carries a quantity **in that measure's unit** feeds it. A quantity in any other unit satisfies its commitment and is not summed: a goal measured in minutes is not advanced by forty searches.
+  - Settled 2026-09-22, when the engine asked whether evidence feeds the measure. It does, when it shares the unit, and by the same rule as any other quantity — the measure never knows which app a quantity came from. Written before any screen read it, so no tick is invalidated.
 - [ ] **RP-15** — A goal holds phases: a span of weeks with its own single aim. The day says which phase it is in.
 
 #### The thing that happens once
