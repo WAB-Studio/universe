@@ -1,0 +1,77 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  inline-size: 100%;
+}
+
+/* The label takes the type docs/pulsar/DESIGN.md "Type" already fixes for a
+   label — 11px mono, uppercase, 0.14em, muted — rather than a size of its own. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--pulsar-text-label-size);
+  font-weight: 500;
+  letter-spacing: var(--pulsar-text-label-tracking);
+  text-transform: uppercase;
+  color: var(--pulsar-muted);
+}
+
+/* Radix sizes and paints the field from its own scale: the height, the radius
+   and the hairline are taken back to the token table here. Doubled to outrank
+   `.rt-TextFieldRoot:where(.rt-r-size-3)` and its surface variant's shadow. */
+.control.control {
+  --text-field-height: 48px;
+  --text-field-border-radius: 10px;
+  --text-field-focus-color: var(--pulsar-accent);
+  --text-field-selection-color: var(--pulsar-accent-soft);
+  background-color: var(--pulsar-raised);
+  color: var(--pulsar-ink);
+  box-shadow: inset 0 0 0 1px var(--pulsar-border);
+  border-radius: 10px;
+}
+
+/* Radix draws a placeholder in its own grey scale. Muted is the smallest text
+   colour the token table has, and a placeholder is still read. */
+.control.control input::placeholder {
+  color: var(--pulsar-muted);
+}
+
+.hint {
+  font-size: var(--pulsar-text-meta-size);
+  line-height: 1.4;
+  color: var(--pulsar-muted);
+}
+
+/* docs/pulsar/DESIGN.md "The controls": disabled and read-only both drop the
+   fill and read as one thing — "this does not move" — muted ink over the
+   surface behind them, with a `line` ring; a field never leaves the two half
+   dressed, one with a ring and the other without (see "Decisions taken here",
+   2026-09-22). Radix pairs the two states in its own selector too, and washes
+   both with `--gray-a2` and `--gray-a6`, a scale this design does not use.
+   `color` alone is not enough: Chromium and WebKit paint an input's glyph from
+   `-webkit-text-fill-color` when it is set, and Radix sets that property on
+   both states without this rule ever touching it. */
+.control.control:has(input:disabled, input:read-only) {
+  background-image: none;
+  box-shadow: inset 0 0 0 1px var(--pulsar-line);
+  color: var(--pulsar-muted);
+}
+
+.control.control input:where(:disabled, :read-only) {
+  color: var(--pulsar-muted);
+  -webkit-text-fill-color: var(--pulsar-muted);
+}
+
+/* The browser fills a field first, from its own palette: a translucent green
+   tint on the root (`--focus-a2`, Radix's own accent scale) and `--gray-12`
+   as the glyph's `-webkit-text-fill-color` — the one property Radix sets here
+   expressly to defeat the platform's own autofill colour, so overriding
+   `color` alone would leave the platform's blue showing through nowhere and
+   Radix's own grey painting instead of ink. */
+.control.control:has(input:autofill) {
+  background-image: none;
+}
+
+.control.control input:autofill {
+  -webkit-text-fill-color: var(--pulsar-ink);
+}

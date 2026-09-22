@@ -1,0 +1,65 @@
+/* A plain `<button>` sits outside Radix's `.rt-reset`, so the user agent's own
+   background, border and font are cleared here, as in row.module.css. */
+.chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  border: 1px solid var(--pulsar-border);
+  border-radius: 10px;
+  background: var(--pulsar-raised);
+  color: var(--pulsar-ink-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--pulsar-text-name-size);
+  font-weight: var(--pulsar-text-name-weight);
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pill {
+  min-inline-size: 48px;
+  min-block-size: 48px;
+  padding: 0 16px;
+}
+
+/* One of seven in a row. At 360px the page leaves a 320px column, so seven of
+   these take 308 and the row that holds them has 12px to spend on gaps: 2px
+   between chips, and no more. Never shrinks below its floor — a row with a
+   wider gap overflows visibly rather than handing back a 38px target. */
+.day {
+  flex: 1 0 44px;
+  min-inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+}
+
+/* Selected is the accent filled, the way a declared mark is: the difference is
+   fill, never hue (docs/pulsar/DESIGN.md "The marks"). */
+.selected {
+  background: var(--pulsar-accent);
+  border-color: var(--pulsar-accent);
+  color: var(--pulsar-on-accent);
+}
+
+/* docs/pulsar/DESIGN.md "Type": a quantity offered in a chip is still a figure. */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: var(--pulsar-text-measure-tracking);
+}
+
+/* docs/pulsar/DESIGN.md "The controls": disabled drops the fill, in every
+   variant — a selected chip included — and keeps muted ink and a `line` ring. */
+.chip:disabled {
+  cursor: default;
+  background: transparent;
+  color: var(--pulsar-muted);
+  border-color: var(--pulsar-line);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--pulsar-accent);
+  outline-offset: 2px;
+}

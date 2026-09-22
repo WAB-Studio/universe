@@ -2126,6 +2126,19 @@ cualquier `next build`, lo borra. `.next` no está versionado, así que no deja 
 Cuesta minutos cada vez que alguien lo lee como un rojo suyo: lo tropezaron el worker del módulo 8,
 su validador y el rebase de RL-49.
 
+Vuelve en Next 16 con otra ruta y otro nombre de archivo. Medido el 2026-09-22 en `apps/pulsar`,
+lane 4, después de que un validador creara `app/uicheck9x/page.tsx` para medir la pantalla y la
+borrara al terminar:
+
+```
+.next/dev/types/validator.ts(51,39): error TS2307: Cannot find module '../../../app/uicheck9x/page.js'
+```
+
+Ahora los tipos del servidor de desarrollo viven en `.next/dev/types`, no en `.next/types`, y
+`rm -rf .next/dev/types` basta: no hace falta tirar `.next` entero ni volver a construir. **Una
+ruta de prueba que se borra deja su entrada detrás**, así que el rojo aparece en el árbol del
+siguiente que corra `typecheck`, no en el del que la creó.
+
 ## Un censo sobre el asset crudo no dice lo que la pantalla dibuja
 
 Medido el 2026-09-20, escribiendo el contrato de `RL-51`. La misma pregunta — cuántas cabeceras

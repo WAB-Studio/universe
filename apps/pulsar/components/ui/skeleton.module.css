@@ -1,0 +1,52 @@
+/* One flat block of the line colour. Nothing animates: docs/pulsar/DESIGN.md
+   draws the loading day as plain blocks and nothing more. */
+.block {
+  display: block;
+  flex: none;
+  background: var(--pulsar-line);
+}
+
+/* Each block stands as tall as the type it is holding a place for. */
+.title {
+  block-size: var(--pulsar-text-title-size);
+}
+
+.name {
+  block-size: var(--pulsar-text-name-size);
+}
+
+.meta {
+  block-size: var(--pulsar-text-meta-size);
+}
+
+.label {
+  block-size: var(--pulsar-text-label-size);
+}
+
+/* The 24px circle at the head of a row, before the row knows its state. */
+.mark {
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: 50%;
+}
+
+.full {
+  inline-size: 100%;
+}
+
+.wide {
+  inline-size: 72%;
+}
+
+.half {
+  inline-size: 50%;
+}
+
+.short {
+  inline-size: 32%;
+}
+
+/* The circle's own size wins over any width a caller asks for. */
+.mark.mark {
+  inline-size: 24px;
+}

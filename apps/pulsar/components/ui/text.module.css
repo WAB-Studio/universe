@@ -1,0 +1,55 @@
+/* Every class is doubled to outrank `.rt-Text:where(.rt-r-size-N)`, which sets
+   the size and the family a screen would otherwise inherit from Radix. */
+
+/* docs/pulsar/DESIGN.md "Type": the screen title on the phone. */
+.title.title {
+  font-size: var(--pulsar-text-title-size);
+  font-weight: var(--pulsar-text-title-weight);
+  letter-spacing: var(--pulsar-text-title-tracking);
+  line-height: 1.15;
+}
+
+/* The same title wide: a step up in size and weight, a shade tighter. */
+@media (min-width: 700px) {
+  .title.title {
+    font-size: var(--pulsar-text-title-size-wide);
+    font-weight: var(--pulsar-text-title-weight-wide);
+    letter-spacing: var(--pulsar-text-title-tracking-wide);
+  }
+}
+
+/* A commitment name. */
+.name.name {
+  font-size: var(--pulsar-text-name-size);
+  font-weight: var(--pulsar-text-name-weight);
+  line-height: 1.35;
+}
+
+/* The metadata line under a name: mono, because it carries dates and counts. */
+.meta.meta {
+  font-family: var(--font-mono);
+  font-size: var(--pulsar-text-meta-size);
+  letter-spacing: var(--pulsar-text-measure-tracking);
+  line-height: 1.4;
+  color: var(--pulsar-muted);
+}
+
+.ink.ink {
+  color: var(--pulsar-ink);
+}
+
+.secondary.secondary {
+  color: var(--pulsar-ink-secondary);
+}
+
+.muted.muted {
+  color: var(--pulsar-muted);
+}
+
+.quiet.quiet {
+  color: var(--pulsar-quiet);
+}
+
+.accent.accent {
+  color: var(--pulsar-accent);
+}

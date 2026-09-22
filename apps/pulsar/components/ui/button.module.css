@@ -1,0 +1,101 @@
+/* Radix draws every variant and every state from its own teal and grey scales;
+   the token table is the law, so each step a control can reach is remapped here
+   once and no screen ever states a colour. `a2`, `a3` and `a4` are the tints a
+   hover or a press lays down, `a8` the ring an outline draws, `a11` its ink,
+   and `--focus-8` the ring Radix focuses with. Doubled, like every class in
+   this directory, to outrank `.rt-BaseButton:where(.rt-r-size-N)`. */
+.control.control {
+  --accent-9: var(--pulsar-accent);
+  --accent-10: var(--pulsar-accent);
+  --accent-a2: var(--pulsar-accent-soft);
+  --accent-a3: var(--pulsar-accent-soft);
+  --accent-a4: var(--pulsar-accent-soft);
+  --accent-a8: var(--pulsar-border);
+  --accent-a11: var(--pulsar-ink);
+  --accent-contrast: var(--pulsar-on-accent);
+  --focus-8: var(--pulsar-accent);
+  border-radius: 10px;
+  /* Radix sets a control's label from its own scale — 14px at size 2, a size
+     docs/pulsar/DESIGN.md has no role for. A label on a control reads at the
+     same step a commitment name does. */
+  font-size: var(--pulsar-text-name-size);
+  font-weight: var(--pulsar-text-name-weight);
+}
+
+/* `--base-button-height` is what a size step sets; the floor is pinned on top
+   of it so a ghost variant, which Radix sizes by its glyph and switches to
+   `content-box`, cannot fall under it either. */
+.tap48.tap48 {
+  box-sizing: border-box;
+  --base-button-height: 48px;
+  min-inline-size: 48px;
+  min-block-size: 48px;
+}
+
+/* docs/pulsar/DESIGN.md "Decisions taken here": the 44px icon button in the
+   day's header. The one control the design holds under 48. */
+.tap44.tap44 {
+  box-sizing: border-box;
+  --base-button-height: 44px;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
+
+.block.block {
+  inline-size: 100%;
+}
+
+/* docs/pulsar/DESIGN.md "The controls": outline is a transparent fill, a 1.5px
+   `border` ring and ink — never a tint of the accent, which is what Radix's own
+   `--accent-a8` draws. The ring is an inset shadow at zero blur because
+   Chromium floors a border-width to a whole CSS pixel and a 1.5px border paints
+   1px; zero blur and zero offset make it a hairline, not a shadow. */
+.outline.outline {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--pulsar-border);
+  color: var(--pulsar-ink);
+}
+
+/* A press or a hover must not tint an outline control either. */
+.outline.outline:hover,
+.outline.outline:active {
+  background-color: transparent;
+}
+
+/* docs/pulsar/DESIGN.md "The controls": the day's theme control — a glyph with
+   no fill, no ring and muted ink. */
+.ghost.ghost {
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--pulsar-muted);
+}
+
+/* docs/pulsar/DESIGN.md "The controls": solid is the accent filled, with no
+   ring of its own. */
+.solid.solid {
+  background-color: var(--pulsar-accent);
+  color: var(--pulsar-on-accent);
+  box-shadow: none;
+}
+
+/* Radix darkens (light face) or brightens (dark face) the fill on press with
+   a `filter`, which a check that reads `background-color` never sees: the
+   pixel it paints is not the accent token any more. A press reaches for no
+   colour this design does not have. */
+.solid.solid:active {
+  filter: none;
+}
+
+/* docs/pulsar/DESIGN.md "The controls": disabled drops the fill in every
+   variant — muted ink on the surface behind it, with a `line` ring. Keeping
+   the variant's own fill measured 1.08:1 on the light face and 1.19:1 on the
+   dark one, which is unreadable; this reads 4.92 and 6.86. It never changes
+   hue and never takes a grey from somewhere else — Radix washes a disabled
+   control with `--gray-a3` and rings it in `--gray-a7`, both from a scale this
+   design does not use. */
+.control.control:disabled,
+.control.control[data-disabled] {
+  background-color: transparent;
+  color: var(--pulsar-muted);
+  box-shadow: inset 0 0 0 1.5px var(--pulsar-line);
+}
