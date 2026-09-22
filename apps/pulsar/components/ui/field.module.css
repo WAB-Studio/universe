@@ -41,3 +41,16 @@
   line-height: 1.4;
   color: var(--pulsar-muted);
 }
+
+/* docs/pulsar/DESIGN.md "The controls": disabled is muted ink over the same
+   fill, with a `line` ring. Radix washes a disabled field with `--gray-a2` and
+   rings it in `--gray-a6`, both from a scale this design does not use. */
+.control.control:has(input:disabled) {
+  background-image: none;
+  box-shadow: inset 0 0 0 1px var(--pulsar-line);
+  color: var(--pulsar-muted);
+}
+
+.control.control input:disabled {
+  color: var(--pulsar-muted);
+}

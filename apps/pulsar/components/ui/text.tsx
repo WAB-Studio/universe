@@ -30,12 +30,13 @@ const tones: Record<Tone, string> = {
   accent: styles.accent,
 };
 
-export function Text({
-  variant = "body",
-  tone,
-  className,
-  ...props
-}: TextProps & PulsarTextProps) {
+// `color` and `highContrast` name a hue from Radix's scale and `size` a step
+// from its type scale: the tone comes from the token table and the size from
+// `variant`, so neither is reachable. Distributive, because `TextProps` is a
+// union over the element it renders and a plain `Omit` would collapse it to one.
+type Narrowed<T> = T extends unknown ? Omit<T, "color" | "highContrast" | "size"> : never;
+
+export function Text({ variant = "body", tone, className, ...props }: Narrowed<TextProps> & PulsarTextProps) {
   const merged = [variants[variant], tone ? tones[tone] : undefined, className]
     .filter(Boolean)
     .join(" ");

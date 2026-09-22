@@ -15,6 +15,11 @@
   max-block-size: 85%;
   overflow-y: auto;
   border-radius: 16px 16px 0 0;
+  /* docs/pulsar/DESIGN.md: no shadow anywhere — not on a sheet, not on a
+     button, not on a field. Separation is a hairline, a change of fill or the
+     scrim, never a blur. Radix gives every dialog `var(--shadow-6)`, three
+     blurred layers of its own black, so the line stays: it is not dead. */
+  box-shadow: none;
   background-color: var(--pulsar-raised);
   color: var(--pulsar-ink);
   --dialog-content-padding: 20px;

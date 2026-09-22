@@ -24,8 +24,10 @@
   border-block-end: 0;
 }
 
+/* A row carries no fill and no ring, so disabled is the ink alone. */
 .row:disabled {
   cursor: default;
+  color: var(--pulsar-muted);
 }
 
 /* Inset, so the ring does not fall outside the page's gutter on a phone. */
