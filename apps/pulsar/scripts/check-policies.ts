@@ -4,7 +4,7 @@
  * query — instead of reading either from a migration (AGENTS.md,
  * "Verification").
  *
- * Two parts, in the shape of `apps/voyager/scripts/check-sync.ts`:
+ * Three parts, in the shape of `apps/voyager/scripts/check-sync.ts`:
  *
  * Part 1 drives RLS and grants. Two `randomUUID()` subjects, their
  * `auth.users` rows inserted inside one transaction that always throws at the
@@ -13,23 +13,47 @@
  * runs inside its own savepoint, so one `42501` never aborts the ones after
  * it. `anon` is driven too and refused everything.
  *
- * Part 2 calls `withSettledTransaction` (`@/lib/settled-transaction`) —
- * the exact function `withGoalsDb` calls, not a copy of it — so a mutation to
- * that function is what turns this script red, from either call site.
- * `withGoalsDb` itself still cannot run from a plain script (`verifiedClaims`
- * needs `next/headers`'s `cookies()`, which throws outside a request — the
- * same wall module 3's own validator hit for orbit), so this part builds its
- * own session object directly instead of asking Supabase for one; only that
- * lookup is out of reach here, not the boundary it guards. One exception:
- * `P27` reads a *second*, later connection on the same pool to check nothing
- * leaked past the first one's commit, and that comparison is exactly the one
- * thing here that depends on a shared, contended resource — see
- * `docs/TRAPS.md`, "claims (and role) can survive a connection through the
- * pooler": under concurrent load on the same `DATABASE_URL` it can both flag
- * correct code and miss a real regression. `P26`, which checks the settle
- * from inside its own single transaction, does not share that weakness.
+ * Part 2 calls `withSettledTransaction` (`@/lib/settled-transaction`)
+ * directly — the exact function `withGoalsDb` calls, not a copy of it — so a
+ * mutation *inside that function* turns this script red, from either call
+ * site. This alone does **not** prove `lib/session.ts` still calls it, or
+ * calls it correctly: a rewrite of `withSettledDb` that skips
+ * `withSettledTransaction` entirely, or hands it an adapter that never
+ * executes the statement it is given, is invisible to Part 2 — neither
+ * mutation touches the function Part 2 imports. `P27` also reads a *second*,
+ * later connection on the same pool to check nothing leaked past the first
+ * one's commit; that comparison is only meaningful when both queries land on
+ * the same physical backend — measured (`docs/TRAPS.md`, "claims (and role)
+ * can survive a connection through the pooler") to land on a *different* one
+ * often enough, under Supavisor's transaction pooling, to both flag correct
+ * code and miss a real regression. `P27` reads `pg_backend_pid()` from both
+ * queries, retries the bare one once on a mismatch, and reports
+ * `INCONCLUSIVE` — never `PASS` — if the two still disagree: an unmeasured
+ * comparison must never look like a clean one. `P26`, which checks the settle
+ * from inside its own single transaction on its own connection, needs none of
+ * this.
+ *
+ * Part 3 closes the Part-2 gap: it imports `withGoalsDb`/`withReadingDb`
+ * themselves from `lib/session.ts` and drives them for real, so a rewrite
+ * that skips `withSettledTransaction` — invisible to Part 2 — turns this red
+ * too (and, as it happens, also breaks the no-session guard, which is what
+ * `P34` below catches). `verifiedClaims` is the one thing genuinely out of
+ * reach here — it needs `next/headers`'s `cookies()`, which throws outside a
+ * request (the same wall module 3's own validator hit for orbit) — so
+ * `@repo/supabase-auth` is mocked with `node:test`'s `mock.module`
+ * (`--experimental-test-module-mocks`, the same flag `check:unit` already
+ * runs under) to hand back a canned session without ever calling
+ * `createSupabaseServerClient`. `server-only`, which `lib/session.ts` and
+ * `@/db/client` both import at their top, is not mockable that way —
+ * `mock.module` still resolves the real specifier first — so `NODE_PATH`
+ * points this script alone at `scripts/node-stubs/server-only`, a local
+ * no-op stand-in `next dev`/`next build` never sees (they never read
+ * `NODE_PATH`, and nothing under `scripts/` is on their module path). What
+ * runs after that is `lib/session.ts` itself, unmodified, importing the real
+ * `@/db/client` and calling the real `withSettledTransaction`.
  */
 import { randomUUID } from "node:crypto";
+import { mock } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
 import type { SQL } from "drizzle-orm";
@@ -353,16 +377,14 @@ async function checkSettleMechanism(): Promise<void> {
   // With a session: the real `withSettledTransaction` actually seats the role
   // and drops BYPASSRLS, driven end to end rather than asserted from the file
   // — the very function `withGoalsDb` calls, not a copy of it.
-  const [seated] = await withSettledTransaction<postgres.TransactionSql, { role: string; bypasses: boolean }[]>(
-    session,
-    "check-policies",
-    "goals, public",
-    beginOn(sql),
-    runOn,
-    (tx) =>
-      tx<{ role: string; bypasses: boolean }[]>`
-        select current_user as role,
-               (select rolbypassrls from pg_roles where rolname = current_user) as bypasses`,
+  const [seated] = await withSettledTransaction<
+    postgres.TransactionSql,
+    { role: string; bypasses: boolean; pid: number }[]
+  >(session, "check-policies", "goals, public", beginOn(sql), runOn, (tx) =>
+    tx<{ role: string; bypasses: boolean; pid: number }[]>`
+      select current_user as role,
+             (select rolbypassrls from pg_roles where rolname = current_user) as bypasses,
+             pg_backend_pid() as pid`,
   );
   assert(
     "P26",
@@ -372,17 +394,33 @@ async function checkSettleMechanism(): Promise<void> {
 
   // `is_local = true` (the third argument to every `set_config` in
   // `settleSessionSql`) is what keeps the settle from surviving its own
-  // transaction. `max: 1` keeps one persistent client socket open for
-  // `sql`'s whole life, but under Supavisor's transaction pooling that socket
-  // can still be handed a *different* upstream backend for this bare query
-  // than the one `seated` above ran on — so this assertion is a real check
-  // with a real, measured false-positive and false-negative rate under
-  // contention on the shared `DATABASE_URL`, not a certainty. See
-  // `docs/TRAPS.md`, "claims (and role) can survive a connection through the
-  // pooler": ten runs correct/idle all passed, five of ten correct/under load
-  // failed, and two of ten under a real `is_local` regression passed anyway.
-  const [bare] = await sql<{ role: string }[]>`select current_user as role`;
-  assert("P27", bare.role !== "authenticated", `role on the same connection after commit = ${bare.role}`);
+  // transaction. `max: 1` keeps one persistent client socket open for `sql`'s
+  // whole life, but under Supavisor's transaction pooling that socket can
+  // still be handed a *different* upstream backend for this bare query than
+  // `seated` ran on — measured (`docs/TRAPS.md`, "claims (and role) can
+  // survive a connection through the pooler") to both flag correct code and
+  // miss a real regression under contention. The comparison below only means
+  // something when both queries land on the same backend: read
+  // `pg_backend_pid()` from both, retry the bare query once on a mismatch,
+  // and report inconclusive — never a PASS — if it still does not match. An
+  // unearned PASS is what lets the regression through; a visible
+  // "inconclusive" does not.
+  async function bareRoleAndPid(): Promise<{ role: string; pid: number }> {
+    const [row] = await sql<{ role: string; pid: number }[]>`select current_user as role, pg_backend_pid() as pid`;
+    return row;
+  }
+
+  let bare = await bareRoleAndPid();
+  if (bare.pid !== seated.pid) bare = await bareRoleAndPid();
+
+  if (bare.pid !== seated.pid) {
+    console.log(
+      `INCONCLUSIVE  P27 — seated on backend pid ${seated.pid}, the bare query landed on pid ${bare.pid} twice; ` +
+        `nothing measured about whether the settle leaked`,
+    );
+  } else {
+    assert("P27", bare.role !== "authenticated", `role on backend pid ${bare.pid} after commit = ${bare.role}`);
+  }
 
   // Without a session: the guard must throw before `sql.begin` ever runs, so
   // zero statements reach the wire — read from this pool's own instrumented
@@ -475,6 +513,64 @@ async function checkRealClientRejectsBadTokens(): Promise<void> {
   );
 }
 
+type RealDoorSession = { claims: Record<string, unknown>; user: { id: string; email: string } };
+
+// Mutable so `verifiedClaims`'s mock — registered once, below — can hand back
+// a different answer per call without re-registering the mock: `mock.module`
+// must land before `@/lib/session` is ever imported, so this closes over a
+// variable this function sets before each call to the real door.
+let realDoorSession: RealDoorSession | null = null;
+
+// Closes the gap Part 2 cannot: `withSettledTransaction` being real and
+// shared proves a mutation *inside* it is caught from every call site, but
+// proves nothing about whether `lib/session.ts` still calls it, calls it with
+// a working adapter, or calls it at all. This part imports the real
+// `withGoalsDb`/`withReadingDb` and drives them — see the module docstring
+// for how `server-only` and `verifiedClaims` are gotten out of the way
+// without touching `lib/session.ts` itself.
+async function checkRealDoor(): Promise<void> {
+  mock.module("@repo/supabase-auth", {
+    namedExports: {
+      createSupabaseServerClient: () => {
+        throw new Error("checkRealDoor: createSupabaseServerClient must not be called — verifiedClaims is mocked");
+      },
+      verifiedClaims: async () => realDoorSession,
+    },
+  });
+
+  const { withGoalsDb, withReadingDb } = await import("@/lib/session");
+
+  const subject = randomUUID();
+  realDoorSession = {
+    claims: { sub: subject, role: "authenticated", aud: "authenticated" },
+    user: { id: subject, email: "check-policies@example.invalid" },
+  };
+
+  const roleQuery = `select current_user as role,
+    (select rolbypassrls from pg_roles where rolname = current_user) as bypasses`;
+
+  const [goalsSeat] = await withGoalsDb((tx) => tx.execute<{ role: string; bypasses: boolean }>(roleQuery));
+  assert(
+    "P32",
+    goalsSeat.role === "authenticated" && goalsSeat.bypasses === false,
+    `real withGoalsDb, role = ${goalsSeat.role}, bypassrls = ${goalsSeat.bypasses}`,
+  );
+
+  const [readingSeat] = await withReadingDb((tx) => tx.execute<{ role: string; bypasses: boolean }>(roleQuery));
+  assert(
+    "P33",
+    readingSeat.role === "authenticated" && readingSeat.bypasses === false,
+    `real withReadingDb, role = ${readingSeat.role}, bypassrls = ${readingSeat.bypasses}`,
+  );
+
+  realDoorSession = null;
+  let threw = false;
+  await withGoalsDb(async () => undefined).catch(() => {
+    threw = true;
+  });
+  assert("P34", threw, `real withGoalsDb with no session, threw = ${threw}`);
+}
+
 async function main(): Promise<void> {
   const sql = postgres(DATABASE_URL!, {
     prepare: false,
@@ -488,6 +584,7 @@ async function main(): Promise<void> {
   await checkSettleMechanism();
   await checkStatementAttributionByConnection();
   await checkRealClientRejectsBadTokens();
+  await checkRealDoor();
 
   if (failed) process.exit(1);
 }

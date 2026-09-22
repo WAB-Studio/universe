@@ -607,6 +607,41 @@ running this specific mutation again should immediately follow it with a flush o
 connections issuing `DISCARD ALL`, and should not assume `RESET ALL` inside its own test connection is
 enough.
 
+**This is a working rule now, not a curiosity — escalated twice in one day, 2026-09-22.**
+
+A second validation pass repeated the drill above and made every number worse. Its own measurement of
+`P27` against the real `is_local` regression, with no load beyond the other lanes' ambient traffic:
+**7 of 10 caught**, worse than the first pass's 8 of 10. Its own pool-poisoning measurement: **17 of
+20** fresh connections dirty after ten repetitions of the mutation, against a **0 of 20** baseline
+taken immediately before touching anything — worse than the first pass's 7 of 20, from more
+repetitions of the identical mutation.
+
+**The fix applied for `P27`:** read `pg_backend_pid()` from the settled transaction and from the bare
+query that follows it; if the two pids disagree, retry the bare query once; if they still disagree,
+report `INCONCLUSIVE` — never `PASS` — instead of comparing roles across backends that were never the
+same connection. Measured after the fix, ten more repetitions of the real `is_local` regression, same
+ambient conditions: **10 of 10 caught**, zero `INCONCLUSIVE`. The gate does not eliminate the
+underlying pooler behaviour — it stops the assertion from drawing a conclusion when it cannot tell
+whether it measured anything.
+
+**The poisoning itself got worse under repetition, in the same session that fixed the assertion.**
+Immediately after those ten repetitions (the pid-gated ones, code correct, mutation reverted before
+running them): **20 of 20** fresh connections dirty — every single one measured, not a subset. Two
+follow-up passes of forty connections each, every one issuing `DISCARD ALL` before closing, brought it
+to **0 of 40**, confirmed by a fresh measurement of **0 of 20** immediately after, and by three
+subsequent runs of `check:policies` on correct code all showing `P27 PASS` on a clean backend. Before
+the flush, three runs of `check:policies` on correct, unmutated code **all failed `P27`** — not because
+the settle broke, but because the bare query on those runs kept landing on a backend still poisoned
+from the mutation drill ten runs earlier, in the same session.
+
+**The rule this makes, not a suggestion:** anyone who flips `is_local` on this shared `DATABASE_URL` —
+to reproduce this trap, to test a fix for it, for any reason — must flush the pool with several dozen
+`DISCARD ALL` connections **before ending their session**, not only "if convenient." The pool is shared
+with the other four lanes' dev servers and suites; leaving it dirty hands the next unrelated query on
+any of them a stuck role, and the only symptom is a permission error or an `RLS` result that makes no
+sense for code nobody just changed. A measurement of "clean before, clean after" belongs in that
+worker's own report, not an assumption.
+
 ### A trusted-pointer check turns `on delete set null` into a refusal
 
 Found 2026-09-07, driving it on the shipped `ingest_merchants` and on the day-old
