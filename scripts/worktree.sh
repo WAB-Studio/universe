@@ -16,6 +16,7 @@ set -euo pipefail
 APPS=(
   "orbit    3000       yes         yes"
   "voyager  3100       yes         no"
+  "pulsar   3200       yes         no"
 )
 
 APP_NAME=orbit
