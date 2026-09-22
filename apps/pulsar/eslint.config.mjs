@@ -32,7 +32,12 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              group: ["**/db/client"],
+              // `group`'s gitignore-style matching takes the source string
+              // literally: a `.js` (or `.jsx`) suffix — legal ESM, and the
+              // one TS resolves without a `TS5097`/`TS2307` — slips past
+              // `**/db/client`. `regex` matches the module path underneath
+              // whatever extension, real or not, the import spells out.
+              regex: "(^|/)db/client(\\.[cm]?[jt]sx?)?$",
               message:
                 "The only doors to this app's tables are `withGoalsDb` and `withReadingDb`, from `@/lib/session`.",
             },
@@ -44,7 +49,8 @@ const eslintConfig = defineConfig([
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportExpression[source.value=/(^|\\/)db\\/client$/]",
+          selector:
+            "ImportExpression[source.value=/(^|\\/)db\\/client(\\.[cm]?[jt]sx?)?$/]",
           message:
             "The only doors to this app's tables are `withGoalsDb` and `withReadingDb`, from `@/lib/session`.",
         },
