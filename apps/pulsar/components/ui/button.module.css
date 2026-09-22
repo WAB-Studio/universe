@@ -78,6 +78,14 @@
   box-shadow: none;
 }
 
+/* Radix darkens (light face) or brightens (dark face) the fill on press with
+   a `filter`, which a check that reads `background-color` never sees: the
+   pixel it paints is not the accent token any more. A press reaches for no
+   colour this design does not have. */
+.solid.solid:active {
+  filter: none;
+}
+
 /* docs/pulsar/DESIGN.md "The controls": disabled drops the fill in every
    variant — muted ink on the surface behind it, with a `line` ring. Keeping
    the variant's own fill measured 1.08:1 on the light face and 1.19:1 on the

@@ -42,15 +42,36 @@
   color: var(--pulsar-muted);
 }
 
-/* docs/pulsar/DESIGN.md "The controls": disabled is muted ink over the same
-   fill, with a `line` ring. Radix washes a disabled field with `--gray-a2` and
-   rings it in `--gray-a6`, both from a scale this design does not use. */
-.control.control:has(input:disabled) {
+/* docs/pulsar/DESIGN.md "The controls": disabled and read-only both drop the
+   fill and read as one thing — "this does not move" — muted ink over the
+   surface behind them, with a `line` ring; a field never leaves the two half
+   dressed, one with a ring and the other without (see "Decisions taken here",
+   2026-09-22). Radix pairs the two states in its own selector too, and washes
+   both with `--gray-a2` and `--gray-a6`, a scale this design does not use.
+   `color` alone is not enough: Chromium and WebKit paint an input's glyph from
+   `-webkit-text-fill-color` when it is set, and Radix sets that property on
+   both states without this rule ever touching it. */
+.control.control:has(input:disabled, input:read-only) {
   background-image: none;
   box-shadow: inset 0 0 0 1px var(--pulsar-line);
   color: var(--pulsar-muted);
 }
 
-.control.control input:disabled {
+.control.control input:where(:disabled, :read-only) {
   color: var(--pulsar-muted);
+  -webkit-text-fill-color: var(--pulsar-muted);
+}
+
+/* The browser fills a field first, from its own palette: a translucent green
+   tint on the root (`--focus-a2`, Radix's own accent scale) and `--gray-12`
+   as the glyph's `-webkit-text-fill-color` — the one property Radix sets here
+   expressly to defeat the platform's own autofill colour, so overriding
+   `color` alone would leave the platform's blue showing through nowhere and
+   Radix's own grey painting instead of ink. */
+.control.control:has(input:autofill) {
+  background-image: none;
+}
+
+.control.control input:autofill {
+  -webkit-text-fill-color: var(--pulsar-ink);
 }

@@ -120,6 +120,8 @@ Say what is missing, so a gap nobody drew reads as a gap nobody needed.
 - **The one-offs with no day (RP-21).** Their list is named in the contract and drawn nowhere.
 - **Writing a fact for a day already past (RP-06).** Not drawn.
 - **The moment a phase ends (RP-15)** and the review's own act — recording the answer again. Not drawn.
+- **A read-only field.** No board shows one; "Decisions taken here" says what it looks like anyway,
+  because the kit needed the answer before any screen asked for it.
 
 ## Decisions taken here
 
@@ -147,3 +149,11 @@ Say what is missing, so a gap nobody drew reads as a gap nobody needed.
 - **How much evidence satisfies a day (RP-08): one search.** Taken by the user 2026-09-22.
   `Meta.dc.html` draws «1 búsqueda · diccionario»; the day boards draw 55, which is the real figure
   measured in `reading.lookups` that day. The threshold is per commitment and the person can raise it.
+- **The kit keeps composing on Radix Themes.** A fourth path of unstyled Radix paint reached the
+  screen — `-webkit-text-fill-color` on a disabled or read-only field, set by Radix beside `color`
+  and never pinned by the kit, so Chromium and WebKit painted their own grey under a correct-looking
+  computed style. Taken knowing a fifth path can still surface: the fix is dressing what Radix paints,
+  not leaving the library or rebuilding a primitive on bare elements. Taken by the user 2026-09-22.
+- **A read-only field reads exactly as a disabled one.** Muted ink, a `line` ring, no fill of its
+  own — one form for "this does not move," not two half-dressed states a reader would have to tell
+  apart. No board draws a read-only field; this decision has none. Taken by the user 2026-09-22.
