@@ -2155,3 +2155,29 @@ implementarlo, no la revisión. El censo barato además se dejó `bass`, `desert
 **La regla:** mide la afirmación sobre una pantalla por la función que alimenta esa pantalla. Si la
 afirmación habla de cabeceras, pásala por el índice; si habla de orden, pásala por el comparador.
 Un `JSON.parse` del asset y un `Map` a mano responden otra pregunta parecida y más barata.
+
+## Drizzle's insert builder names every column, so a column-scoped GRANT refuses it
+
+`apps/pulsar/db/migrations/0000_mighty_pet_avengers.sql` grants INSERT on `goals.facts` over eight
+named columns and deliberately leaves out `written_at`, so that a fact's writing time is the
+column's `now()` and nobody's parameter. A `declareFact` that never mentions `written_at` still
+fails:
+
+```
+insert into "goals"."facts" ("id","user_id","commitment_id","one_off_id","goal_id","day","written_at","quantity","note")
+values (default, $1, $2, $3, $4, $5, default, $6, $7)
+-- PostgresError: permission denied for table facts · 42501
+```
+
+`db.insert(facts).values({...})` names **every** column of the table and fills the omitted ones with
+the bare keyword `default`. Postgres checks the column privilege on every column the rewritten
+INSERT names, and **naming a column is not the same as writing to it**: `default` is still a
+mention, and a mention is what the check reads. The raw statement that lists only the seven granted
+columns never trips it.
+
+Measured 2026-09-22 by module 10's validator, inside a real settled transaction —
+`current_setting('role')` read `authenticated` and `auth.uid()` the caller's own id, so the refusal
+is the grant and not a misrouted session.
+
+**It bites any table in this repo with a column-scoped `GRANT INSERT`.** Write the statement, name
+the granted columns, and leave the rest out of the SQL entirely.
