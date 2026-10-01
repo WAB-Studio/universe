@@ -20,6 +20,8 @@ export type MonthItem = {
   children: Task[];
   carriedFrom: string | null;
   owes: number;
+  // False when neither the task nor any child ever carried an estimate.
+  hasAmount: boolean;
   done: boolean;
 };
 
@@ -82,7 +84,14 @@ function carriedIn(tasks: Task[], month: string): MonthItem[] {
     const undoneUnestimated =
       !hasEstimate(task, children) && (doneBefore === null || doneBefore >= month);
     if (owes > 0 || undoneUnestimated) {
-      items.push({ task, children, carriedFrom: own, owes, done: false });
+      items.push({
+        task,
+        children,
+        carriedFrom: own,
+        owes,
+        hasAmount: hasEstimate(task, children),
+        done: false,
+      });
     }
   }
   // Stable sort keeps creation order inside a month.
@@ -94,12 +103,20 @@ function carriedIn(tasks: Task[], month: string): MonthItem[] {
 export function monthList(tasks: Task[], month: string, today: string): MonthItem[] {
   const lastDay = dayBefore(nextMonth(month));
   const readAt = today < lastDay ? today : lastDay;
-  const carried = carriedIn(tasks, month);
+  // A month after today's has nothing left undone yet (RP-31).
+  const carried = month <= monthOf(today) ? carriedIn(tasks, month) : [];
   const own: MonthItem[] = [];
   for (const task of tasks) {
     if (task.parentId !== null || monthOfTask(task) !== month) continue;
     const children = childrenOf(tasks, task);
-    own.push({ task, children, carriedFrom: null, owes: owedAt(task, children, month), done: false });
+    own.push({
+      task,
+      children,
+      carriedFrom: null,
+      owes: owedAt(task, children, month),
+      hasAmount: hasEstimate(task, children),
+      done: false,
+    });
   }
   return [...carried, ...own].map((item) => ({
     ...item,

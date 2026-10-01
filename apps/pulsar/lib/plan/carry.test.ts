@@ -105,6 +105,52 @@ test("monthList: older months first, then creation order; done reads at the mont
   assert.equal(monthList([{ ...done, doneOn: "2026-11-30" }], NOV, "2027-03-01")[0].done, true);
 });
 
+test("monthList: a month after today's carries nothing; today's and a later today carry", () => {
+  const tasks = [task("oct", { estimate: 315 })];
+  for (const month of [NOV, "2027-03-01"]) {
+    const list = monthList(tasks, month, "2026-10-01");
+    assert.ok(!list.some((i) => i.carriedFrom !== null));
+  }
+  const own = monthList(tasks, OCT, "2026-10-01");
+  assert.equal(own[0].carriedFrom, null);
+  const nov = monthList(tasks, NOV, "2026-11-15");
+  assert.equal(nov[0].carriedFrom, OCT);
+  assert.equal(nov[0].owes, 315);
+  assert.deepEqual(monthList(tasks, DEC, "2026-11-15"), []);
+});
+
+test("monthList: hasAmount reads the estimate, a parent's through its children", () => {
+  const tasks = [
+    task("bare"),
+    task("empty", { estimate: 50 }),
+    task("kid", { parentId: "empty" }),
+    task("p", {}),
+    task("c1", { parentId: "p", estimate: 30 }),
+    task("c2", { parentId: "p" }),
+    task("est", { estimate: 10 }),
+  ];
+  const by = Object.fromEntries(monthList(tasks, NOV, "2026-11-15").map((i) => [i.task.id, i.hasAmount]));
+  assert.deepEqual(by, { bare: false, empty: false, p: true, est: true });
+});
+
+test("monthList: hasAmount on a month's own items reads the same way", () => {
+  const own = { plannedMonth: NOV };
+  const tasks = [
+    task("p1", own),
+    task("p1c", { parentId: "p1", estimate: 30 }),
+    task("p2", own),
+    task("p2c", { parentId: "p2" }),
+    task("leaf", { ...own, estimate: 10 }),
+    task("bare", own),
+    task("pe", { ...own, estimate: 50 }),
+    task("pec", { parentId: "pe" }),
+  ];
+  const list = monthList(tasks, NOV, "2026-11-15");
+  assert.ok(list.every((i) => i.carriedFrom === null));
+  const by = Object.fromEntries(list.map((i) => [i.task.id, i.hasAmount]));
+  assert.deepEqual(by, { p1: true, p2: false, leaf: true, bare: false, pe: false });
+});
+
 test("carryShare: October with 44 h planned and 12 h undone reads 12 of 44", () => {
   assert.deepEqual(carryShare(october(), OCT), { carried: 12, planned: 44 });
 });
