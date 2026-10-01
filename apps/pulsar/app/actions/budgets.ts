@@ -15,7 +15,7 @@ import {
   type SetMonthBudgetInput,
 } from "@/lib/validation/budget";
 import { isClosed } from "@/lib/validation/closed";
-import { civilDateInZone } from "@/lib/zone";
+import { civilDateInZone, todayInZone } from "@/lib/zone";
 
 export type SetMonthBudgetResult = { ok: true } | { ok: false; error: string };
 export type RemoveMonthBudgetResult = { ok: true } | { ok: false; error: string };
@@ -63,6 +63,8 @@ export async function setMonthBudget(input: SetMonthBudgetInput): Promise<SetMon
       if (isClosed(goal)) throw new NamedError("month.errors.closed");
       if (goal.measureUnit === null) throw new NamedError("month.errors.noMeasure");
 
+      if (month < todayInZone().slice(0, 7)) throw new NamedError("month.errors.monthClosed");
+
       const openedOn = civilDateInZone(goal.createdAt);
       if (monthOutsideSpan({ month, openedOn, horizon: goal.horizon })) {
         throw new NamedError("month.errors.outsideSpan");
@@ -87,6 +89,7 @@ export async function setMonthBudget(input: SetMonthBudgetInput): Promise<SetMon
  * Takes a month's amount away (RP-28). A closed goal's months are refused the
  * way `setMonthBudget` refuses them: removing is a write. A month with none
  * already is the outcome asked for, so deleting nothing is not a refusal.
+ * A month already over is the plan it was lived against: both actions refuse it.
  * `month_budgets_delete_self` scopes the delete to the caller's own rows.
  */
 export async function removeMonthBudget(
@@ -108,6 +111,7 @@ export async function removeMonthBudget(
         .where(eq(goals.id, goalId));
       if (!goal) throw new NamedError("month.errors.notFound");
       if (isClosed(goal)) throw new NamedError("month.errors.closed");
+      if (month < todayInZone().slice(0, 7)) throw new NamedError("month.errors.monthClosed");
 
       await tx
         .delete(monthBudgets)

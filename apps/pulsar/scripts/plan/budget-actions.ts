@@ -88,6 +88,8 @@ let measuredGoalId: string;
 let unmeasuredGoalId: string;
 let archivedGoalId: string;
 let endedGoalId: string;
+// Opened two months ago, an amount planted on last month behind the action.
+let agedGoalId: string;
 
 async function rowsOf(goalId: string): Promise<{ month: string; amount: number }[]> {
   const rows = await sql<{ month: string; amount: number }[]>`
@@ -134,6 +136,11 @@ before(async () => {
     const planted = await setMonthBudget({ goalId, month: monthFrom(today, 1), amount: 45 });
     if (!planted.ok) throw new Error(`setMonthBudget: ${planted.error}`);
   }
+
+  agedGoalId = await goal("RP-28 fixture: abierta hace dos meses", true);
+  await sql`update goals.goals set created_at = ${`${monthFrom(today, -2)}-15T12:00:00Z`} where id = ${agedGoalId}`;
+  await sql`insert into goals.month_budgets (user_id, goal_id, month, amount)
+    select user_id, id, ${`${monthFrom(today, -1)}-01`}, 55 from goals.goals where id = ${agedGoalId}`;
 
   const archived = await plan.archiveGoal({ goalId: archivedGoalId });
   if (!archived.ok) throw new Error(`archiveGoal: ${archived.error}`);
@@ -186,10 +193,28 @@ test("setMonthBudget: the last day's month lands; the horizon's own month is out
   assert.deepEqual(await rowsOf(measuredGoalId), [{ month: `${monthFrom(today, 1)}-01`, amount: 300 }]);
 });
 
-test("setMonthBudget: the month before the goal opened is outside the span", async () => {
+test("setMonthBudget: the month before the goal opened is closed, which is refused first", async () => {
   const result = await settle({ goalId: measuredGoalId, month: monthFrom(today, -1), amount: 60 });
-  assert.deepEqual(result, { ok: false, error: "month.errors.outsideSpan" });
+  assert.deepEqual(result, { ok: false, error: "month.errors.monthClosed" });
   assert.deepEqual(await rowsOf(measuredGoalId), []);
+});
+
+test("a closed month's amount is neither changed nor removed; this month's still lands", async () => {
+  const last = `${monthFrom(today, -1)}-01`;
+  const set = await settle({ goalId: agedGoalId, month: monthFrom(today, -1), amount: 99 });
+  assert.deepEqual(set, { ok: false, error: "month.errors.monthClosed" });
+  assert.deepEqual(await rowsOf(agedGoalId), [{ month: last, amount: 55 }]);
+
+  const removed = await removeMonthBudget({ goalId: agedGoalId, month: monthFrom(today, -1) });
+  assert.deepEqual(removed, { ok: false, error: "month.errors.monthClosed" });
+  assert.deepEqual(await rowsOf(agedGoalId), [{ month: last, amount: 55 }]);
+
+  const now = await settle({ goalId: agedGoalId, month: thisMonth, amount: 70 });
+  assert.deepEqual(now, { ok: true });
+  assert.deepEqual(await rowsOf(agedGoalId), [
+    { month: last, amount: 55 },
+    { month: `${thisMonth}-01`, amount: 70 },
+  ]);
 });
 
 test("setMonthBudget: a goal that measures nothing is refused with noMeasure", async () => {
