@@ -353,7 +353,7 @@ export async function DayScreen({ day: requested }: { day?: string } = {}) {
       {figures.map((goal) => (
         <Panel as="div" key={goal.id}>
           <Face on="desktop">
-            <SectionLabel>{goal.measureUnit}</SectionLabel>
+            <SectionLabel>{isTimeUnit(goal.measureUnit) ? goal.name : goal.measureUnit}</SectionLabel>
             <Flex align="baseline" gap="2">
               <Figure value={weekMeasure[goal.id]} unit={isTimeUnit(goal.measureUnit) ? goal.measureUnit ?? undefined : undefined} />
               <Text variant="meta" tone="muted">
