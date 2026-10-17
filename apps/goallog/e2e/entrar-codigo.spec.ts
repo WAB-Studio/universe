@@ -740,3 +740,214 @@ test("Older marker: a marker before the record's moment leaves the code step sta
     await context.close();
   }
 });
+
+// RP-137, «EntrarSinConexión»: a send, a resend or a check that never reaches the server ends in
+// words and leaves every control usable. The words are the board's, written as literals.
+const OFFLINE = {
+  send: "Sin conexión. No se pudo enviar el código.",
+  check: "Sin conexión. No se pudo comprobar el código.",
+};
+
+const PENDING_KEY = "goallog.pending-sign-in";
+const pendingRaw = (page: Page) => page.evaluate((key) => localStorage.getItem(key), PENDING_KEY);
+
+async function expectCodeStepUsable(page: Page) {
+  await expect(codeField(page)).toBeEnabled();
+  await expect(page.getByRole("button", { name: W.enter, exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: W.other, exact: true })).toBeEnabled();
+}
+
+test("Resend offline: the tap ends in an alert under the button, every control enabled, the button back to «Pedir otro código»", async ({
+  browser,
+  baseURL,
+  db,
+}) => {
+  // Kills: no catch in handleResend (the button sticks on «Enviando…» with the controls disabled).
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await openWithClock(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    await page.clock.fastForward(RESEND_MS + 1_000);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toBeVisible();
+    await expect(page.getByRole("button", { name: R.sending, exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: R.resend, exact: true })).toBeEnabled();
+    await expectCodeStepUsable(page);
+    await expect(page.getByText(R.resent(email))).toHaveCount(0);
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Resend recovers: back online the same button sends, confirms and mails a new code", async ({ browser, baseURL, db }) => {
+  // Kills: the failure leaving the resend stuck at sending, so the second tap does nothing.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await openWithClock(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    await page.clock.fastForward(RESEND_MS + 1_000);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toBeVisible();
+    await context.setOffline(false);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByText(R.resent(email), { exact: true })).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toHaveCount(0);
+    const codes = await mailedCodes(email, 2);
+    expect(codes).toHaveLength(2);
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Resend failure keeps the wait clock: the pending record and the countdown stay the first send's", async ({
+  browser,
+  baseURL,
+  db,
+}) => {
+  // Kills: savePending (or a new `at`) in the failure path, which restarts the 60 s wait for a send that did not happen.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await openWithClock(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    const before = await pendingRaw(page);
+    expect(before).not.toBeNull();
+    await page.clock.fastForward(RESEND_MS + 1_000);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toBeVisible();
+    expect(await pendingRaw(page)).toBe(before);
+    await expect(resendButton(page)).toHaveText(R.resend);
+    await expect(resendButton(page)).toBeEnabled();
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Resend offline keeps the typed code", async ({ browser, baseURL, db }) => {
+  // Kills: the failure path emptying the field as a done resend does.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await openWithClock(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    await codeField(page).fill("123456");
+    await page.clock.fastForward(RESEND_MS + 1_000);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toBeVisible();
+    await expect(codeField(page)).toHaveValue("123456");
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Send offline: «Enviar código» ends in the field's hint, the button enabled, the address kept", async ({
+  browser,
+  baseURL,
+}) => {
+  // Kills: no catch in handleSend (the button sticks on «Enviando…»), or the address cleared.
+  const email = invitee();
+  const { context, page } = await open(browser, baseURL!);
+  try {
+    await visit(page, "/entrar");
+    await page.getByLabel(W.emailLabel).fill(email);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: W.send, exact: true }).click();
+    await expect(page.getByText(OFFLINE.send, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: W.send, exact: true })).toBeEnabled();
+    await expect(page.getByLabel(W.emailLabel)).toHaveValue(email);
+    await expect(page.getByRole("heading", { name: W.sentTitle, exact: true })).toHaveCount(0);
+    expect(await pendingRaw(page)).toBeNull();
+  } finally {
+    await context.close();
+  }
+});
+
+test("Verify offline: «Entrar» ends in the field's hint, the code kept, every control enabled", async ({
+  browser,
+  baseURL,
+  db,
+}) => {
+  // Kills: checking left true after the rejection («Comprobando…» for good), or the code cleared.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await open(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    await codeField(page).fill("123456");
+    await context.setOffline(true);
+    await page.getByRole("button", { name: W.enter, exact: true }).click();
+    await expect(page.getByText(OFFLINE.check, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: W.checking, exact: true })).toHaveCount(0);
+    await expect(codeField(page)).toHaveValue("123456");
+    await expectCodeStepUsable(page);
+    await expect(page.getByRole("heading", { name: W.sentTitle, exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Verify offline then online: the same code, sent again, lands on /", async ({ browser, baseURL, db }) => {
+  // Kills: the catch swallowing or mis-flagging the landing, or clearing the pending address on a rejection.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await open(browser, baseURL!);
+  try {
+    await askForCode(page, db, email);
+    const code = await mailedCode(email);
+    await codeField(page).fill(code);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: W.enter, exact: true }).click();
+    await expect(page.getByText(OFFLINE.check, { exact: true })).toBeVisible();
+    expect(await pendingRaw(page)).not.toBeNull();
+    await context.setOffline(false);
+    await page.getByRole("button", { name: W.enter, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`^${baseURL!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/$`));
+    expect(await sessionsOf(db, email)).toBe(1);
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
+
+test("Consent too: a resend offline on the signed-out consent ends in the alert, and the retry online keeps `next`", async ({
+  browser,
+  baseURL,
+  db,
+}) => {
+  // Kills: `next` dropped from the retry after a failure.
+  const email = invitee();
+  await listAddress(db, email);
+  const { context, page } = await openWithClock(browser, baseURL!);
+  try {
+    await askForCode(page, db, email, consentPath, W.send);
+    await page.clock.fastForward(RESEND_MS + 1_000);
+    await context.setOffline(true);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: OFFLINE.send })).toBeVisible();
+    await expectCodeStepUsable(page);
+    await context.setOffline(false);
+    const posts = sendPosts(page);
+    await page.getByRole("button", { name: R.resend, exact: true }).click();
+    await expect(page.getByText(R.resent(email), { exact: true })).toBeVisible();
+    expect(posts).toHaveLength(1);
+    expect(posts[0].body).toContain("estado-m7");
+    const [newest] = await mailedCodes(email, 2);
+    await codeField(page).fill(newest);
+    await page.getByRole("button", { name: W.enter, exact: true }).click();
+    await expect(page).toHaveURL(`${baseURL}${consentPath}`);
+  } finally {
+    await context.close();
+    await forget(db, email);
+  }
+});
