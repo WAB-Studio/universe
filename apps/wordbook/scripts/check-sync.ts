@@ -223,6 +223,9 @@ async function checkRolledBackRounds(only?: string): Promise<void> {
     const both = await post({ deviceId: a, rows: rowsOf(a, [9]), since: null, tombstones: [{ deviceId: a, localId: 9 }], tombstonesSince: null });
     const afterBoth = await stored();
     assert("S44", both.status === 200 && both.json.accepted === 0 && afterBoth === "0", `status = ${both.status}, accepted = ${both.json.accepted}, lookups (A,9) = ${afterBoth}`);
+    const alone = await post({ deviceId: a, rows: rowsOf(a, [9]), since: null, tombstones: [], tombstonesSince: null });
+    const afterAlone = await stored();
+    assert("S44b", alone.status === 200 && alone.json.accepted === 0 && afterAlone === "0", `status = ${alone.status}, accepted = ${alone.json.accepted}, lookups (A,9) = ${afterAlone}`);
   });
 }
 
