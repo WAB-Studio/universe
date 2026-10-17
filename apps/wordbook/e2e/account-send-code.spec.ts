@@ -582,6 +582,37 @@ test("a send the server refuses says why in an alert, keeps the code, and does n
   expect(await pendingRecord(page)).toEqual(first);
 });
 
+const SEND_CAPPED = "Ya pediste varios códigos hoy. Prueba de nuevo mañana.";
+
+test("a resend refused by the daily cap says to come back tomorrow, in an alert, with the button ready", async ({ page }) => {
+  await askForCodeOnFrozenClock(page, () => (sendCalls.length > 1 ? { ok: false, error: "capped" } : { ok: true }));
+  const first = await pendingRecord(page);
+  await field(page).fill("123");
+  await page.clock.runFor(60_000);
+
+  await resendButton(page).click();
+
+  const line = page.getByRole("alert").filter({ hasText: SEND_CAPPED });
+  await expect(line).toBeVisible();
+  await expect(page.getByText("unos minutos")).toHaveCount(0);
+  await expect(page.getByText(RESENT)).toHaveCount(0);
+  await expect(resendButton(page)).toHaveText(RESEND);
+  await expect(resendButton(page)).toBeEnabled();
+  await expect(field(page)).toHaveValue("123");
+  expect(await pendingRecord(page)).toEqual(first);
+});
+
+test("a resend refused by Auth's 429 keeps «unos minutos» and never says «mañana»", async ({ page }) => {
+  await askForCodeOnFrozenClock(page, () => (sendCalls.length > 1 ? { ok: false, error: "rateLimited" } : { ok: true }));
+  await page.clock.runFor(60_000);
+
+  await resendButton(page).click();
+
+  await expect(page.getByRole("alert").filter({ hasText: SEND_RATE_LIMITED })).toBeVisible();
+  await expect(page.getByText("mañana")).toHaveCount(0);
+  await expect(resendButton(page)).toBeEnabled();
+});
+
 test("a send that never answers gives up as offline, with the glyph, and the button is ready again", async ({ page }) => {
   await askForCodeOnFrozenClock(page, () => (sendCalls.length > 1 ? new Promise<never>(() => {}) : { ok: true }));
   const first = await pendingRecord(page);

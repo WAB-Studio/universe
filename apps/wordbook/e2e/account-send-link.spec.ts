@@ -245,3 +245,48 @@ test("a not-invited answer paints its own line under the kept address, and no ot
     await expect(page.getByText(messages.account.errors[key], { exact: true })).toHaveCount(0);
   }
 });
+
+// RL-74, Board «CuentaTopeDiario»: WordBook's own daily cap says «mañana»;
+// Auth's 429 keeps «unos minutos». Words written whole from the board.
+const CAPPED = "Ya pediste varios códigos hoy. Prueba de nuevo mañana.";
+const AUTH_429 = "Demasiados intentos. Prueba de nuevo en unos minutos.";
+
+test("the daily cap says to come back tomorrow, in an alert, and never «unos minutos»", async ({ page }) => {
+  await mockSendSignInLinkResult(page, { ok: false, error: "capped" });
+  const email = "reader@example.com";
+  await submit(page, email);
+
+  const line = page.getByText(CAPPED, { exact: true });
+  await expect(line).toBeVisible();
+  await expect(line).toHaveAttribute("role", "alert");
+  await expect(page.getByText("unos minutos")).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: messages.account.emailLabel })).toHaveValue(email);
+  await expect(page.getByRole("button", { name: messages.account.copy.noSessionAction })).toBeEnabled();
+});
+
+test("Auth's 429 on the form keeps «unos minutos» and never says «mañana»", async ({ page }) => {
+  await mockSendSignInLinkResult(page, { ok: false, error: "rateLimited" });
+  await submit(page, "reader@example.com");
+
+  await expect(page.getByText(AUTH_429, { exact: true })).toBeVisible();
+  await expect(page.getByText("mañana")).toHaveCount(0);
+});
+
+// A refusal the screen paints reads as words, never as the missing key's path.
+for (const [error, words] of [
+  ["capped", CAPPED],
+  ["rateLimited", AUTH_429],
+  ["sendFailed", messages.account.errors.sendFailed],
+  ["emailInvalid", messages.account.errors.emailInvalid],
+  ["domainUndeliverable", messages.account.errors.domainUndeliverable],
+  ["notInvited", "Este correo no tiene invitación a WordBook."],
+] as const) {
+  test(`every refusal paints its own words in one alert: ${error}`, async ({ page }) => {
+    await mockSendSignInLinkResult(page, { ok: false, error });
+    await submit(page, "reader@example.com");
+
+    const alert = page.getByRole("alert").filter({ hasText: /\S/ });
+    await expect(alert).toHaveCount(1);
+    await expect(alert).toHaveText(words);
+  });
+}
